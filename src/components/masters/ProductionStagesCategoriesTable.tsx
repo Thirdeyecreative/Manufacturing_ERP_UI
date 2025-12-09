@@ -46,15 +46,18 @@ export function ProductionStagesCategoriesTable({
   const [searchTerm, setSearchTerm] = useState("");
   const [editFormOpen, setEditFormOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<any | null>(null);
-  const [SelectedCategoryforToggle, setSelectedCategoryforToggle] = useState<any | null>(null);
+  const [SelectedCategoryforToggle, setSelectedCategoryforToggle] = useState<
+    any | null
+  >(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const token = localStorage.getItem("token");
 
   // Filter based on Category Name
-  const filteredCategories = mockProductionStages.filter(
-    (cat: ProductionStageCategory) =>
-      cat.category_name?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredCategories = Array.isArray(mockProductionStages)
+    ? mockProductionStages.filter((cat: ProductionStageCategory) =>
+        cat.category_name?.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    : [];
 
   // --- Handlers ---
 
@@ -63,9 +66,7 @@ export function ProductionStagesCategoriesTable({
     let parsedStages: any[] = [];
     try {
       const rawStages = JSON.parse(category.stages);
-      // The form expects an array of objects { id, stage_name } or just IDs depending on your implementation.
-      // Since we only have IDs here, we map them to objects with ID only.
-      // The Form component logic we wrote previously handles the ID matching.
+
       parsedStages = Array.isArray(rawStages)
         ? rawStages.map((id) => ({ id: id }))
         : [];

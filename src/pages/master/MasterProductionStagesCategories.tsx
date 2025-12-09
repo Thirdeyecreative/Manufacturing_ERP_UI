@@ -85,8 +85,10 @@ const MasterProductionStagesCategories = () => {
 
   const fetchProductionStages = async (token) => {
     const res = await getAllProductionStages(token);
-    setMockProductionStages(res.data);
-    console.log(res.data);
+    // Ensure data is always an array
+    const data = Array.isArray(res.data) ? res.data : [];
+    setMockProductionStages(data);
+    console.log(data);
   };
   useEffect(() => {
     fetchProductionStages(token);
