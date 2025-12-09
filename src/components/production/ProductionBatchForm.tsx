@@ -117,6 +117,10 @@ export function ProductionBatchForm({
 }: ProductionBatchFormProps) {
   const { toast } = useToast();
 
+  const [productionStageCategories, setProductionStageCategories] = useState<
+    any[]
+  >([]);
+
   const [formData, setFormData] = useState({
     ordersId: "",
     productId: "",
@@ -127,7 +131,8 @@ export function ProductionBatchForm({
     productionHead: "",
     notes: "",
     status: "",
-    productionStages: [],
+    productionStages: [] as string[],
+    stageCategoryId: "manual", // "manual" = choose stages manually, otherwise category id as string
     floor: 0,
     manualProductName: "",
     isManualProduct: false,
@@ -173,6 +178,7 @@ export function ProductionBatchForm({
           materialCategoriesRes,
           unitsRes,
           ordersRes,
+          categoriesRes, // added
         ] = await Promise.all([
           axios.get(`${baseUrl}/product-skus/get-all/${token}`, { headers }),
           axios.get(`${baseUrl}/clients/get-all/${token}`, { headers }),
@@ -183,6 +189,9 @@ export function ProductionBatchForm({
           axios.get(`${baseUrl}/raw-materials/get-all/${token}`, { headers }),
           axios.get(`${baseUrl}/units/get-units/${token}`, { headers }),
           axios.get(`${baseUrl}/orders/get-all/${token}`, { headers }),
+          axios.get(`${baseUrl}/production-stage-categories/get-all/${token}`, {
+            headers,
+          }), // new
         ]);
 
         if (cancelled) return;
@@ -241,6 +250,15 @@ export function ProductionBatchForm({
             : unitsRes.data?.result?.map((u: any) => ({ unit: u.unit_name })) ||
                 []
         );
+
+        // production stage categories
+        setProductionStageCategories(
+          Array.isArray(categoriesRes.data)
+            ? categoriesRes.data
+            : categoriesRes.data?.data && Array.isArray(categoriesRes.data.data)
+            ? categoriesRes.data.data
+            : categoriesRes.data?.result || []
+        );
       } catch (err) {
         console.error("Failed to fetch lists:", err);
         toast({
@@ -290,6 +308,7 @@ export function ProductionBatchForm({
         productionStages: batchData.stages
           ? batchData.stages.map((st: any) => st.stage_id.toString())
           : [],
+        stageCategoryId: "manual", // Add this line
         status: batchData.batch_status,
         floor: batchData.floor,
         manualProductName: "",
@@ -298,23 +317,23 @@ export function ProductionBatchForm({
       });
     } else if (mode === "add" && prefillOrderData) {
       // NEW LOGIC FOR ORDER PREFILL
-      // Logic for ADD mode, pre-filling from an Order object
       const order = prefillOrderData;
       console.log(order);
       setFormData({
         ordersId: String(order.id || ""),
-        productId: String(order.product_sku_id || ""), // Use product_sku_id
-        clientId: String(order.client_id || ""), // Use client_id
-        quantity: String(order.quantity || ""), // Use quantity
-        priority: "normal", // Default, as it's not in the order data
+        productId: String(order.product_sku_id || ""),
+        clientId: String(order.client_id || ""),
+        quantity: String(order.quantity || ""),
+        priority: "normal",
         expectedCompletion: order.expected_delivery_date
-          ? new Date(order.expected_delivery_date).toISOString().split("T")[0] // Format date to YYYY-MM-DD
+          ? new Date(order.expected_delivery_date).toISOString().split("T")[0]
           : "",
-        productionHead: "", // Let the user select
-        notes: order.notes || "", // Use notes
-        productionStages: [], // Let the user select stages
-        status: "", // Not applicable in Add mode, will be 'scheduled' by API
-        floor: 0, // Let the user fill
+        productionHead: "",
+        notes: order.notes || "",
+        productionStages: [],
+        stageCategoryId: "manual", // Add this line
+        status: "",
+        floor: 0,
         manualProductName: "",
         isManualProduct: false,
         manualRawMaterials: [],
@@ -332,6 +351,7 @@ export function ProductionBatchForm({
         productionHead: "",
         notes: "",
         productionStages: [],
+        stageCategoryId: "manual", // Add this line
         status: "",
         floor: 0,
         manualProductName: "",
@@ -566,28 +586,19 @@ export function ProductionBatchForm({
     try {
       const payloadBase: any = {
         quantity: formData.quantity,
-
         clientId: formData.clientId,
-
         expectedCompletionDate: formData.expectedCompletion,
-
         productionHeadEmployeeId: formData.productionHead,
-
         productionNotes: formData.notes,
-
         stages: formData.productionStages,
-
         floor: formData.floor,
-
         token,
       };
 
       // Add product data based on mode
-
       if (formData.isManualProduct) {
         payloadBase.manualProduct = {
           productName: formData.manualProductName,
-
           rawMaterials: formData.manualRawMaterials,
         };
       } else {
@@ -600,15 +611,12 @@ export function ProductionBatchForm({
         if (res.errFlag !== 0) {
           toast({
             title: "Error",
-
             description: res.message,
-
             variant: "destructive",
           });
         } else {
           toast({
             title: "Production Batch Added",
-
             description: `Batch added successfully. Batch id: ${res.batchId}.`,
           });
 
@@ -623,9 +631,7 @@ export function ProductionBatchForm({
         if (!batchId) {
           toast({
             title: "Missing batch id",
-
             description: "Cannot update: batch id missing in edit mode.",
-
             variant: "destructive",
           });
 
@@ -636,24 +642,19 @@ export function ProductionBatchForm({
 
         const res = await updateProductionBatch({
           ...payloadBase,
-
           batchId,
-
           batchStatus: formData.status,
         });
 
         if (res.errFlag !== 0) {
           toast({
             title: "Error",
-
             description: res.errMsg,
-
             variant: "destructive",
           });
         } else {
           toast({
             title: "Production Batch Updated",
-
             description: `Batch updated successfully.`,
           });
 
@@ -674,11 +675,14 @@ export function ProductionBatchForm({
           productionHead: "",
           notes: "",
           productionStages: [],
+          stageCategoryId: "",
           status: "",
           floor: 0,
           manualProductName: "",
           isManualProduct: false,
-          manualRawMaterials: [],
+          manualRawMaterials: [
+            { material_name: "", quantity: 0, unit: "", rawMaterialId: "" },
+          ],
         });
 
         setShowManualProduct(false);
@@ -688,16 +692,42 @@ export function ProductionBatchForm({
 
       toast({
         title: "Submission failed",
-
         description:
           err?.response?.data?.message ||
           err?.message ||
           "Something went wrong while submitting the batch.",
-
         variant: "destructive",
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  // helper to select a category
+  const handleStageCategoryChange = (value: string) => {
+    if (value === "manual") {
+      // switch to manual mode, keep existing productionStages (or clear if you prefer)
+      setFormData((prev) => ({ ...prev, stageCategoryId: "manual" }));
+    } else {
+      const cat = productionStageCategories.find((c) => String(c.id) === value);
+      let stagesArr: any[] = [];
+      if (cat) {
+        try {
+          if (typeof cat.stages === "string") {
+            stagesArr = JSON.parse(cat.stages);
+          } else if (Array.isArray(cat.stages)) {
+            stagesArr = cat.stages;
+          }
+        } catch (err) {
+          console.warn("Failed to parse category.stages", err);
+          stagesArr = [];
+        }
+      }
+      setFormData((prev) => ({
+        ...prev,
+        stageCategoryId: value,
+        productionStages: stagesArr.map((s: any) => String(s)),
+      }));
     }
   };
 
@@ -1158,11 +1188,68 @@ export function ProductionBatchForm({
                   />
                 </div>
 
-                <ProductionStages
-                  setFormData={setFormData}
-                  formData={formData}
-                  productionStages={productionStages}
-                />
+                {/* Production Stages: allow category OR manual selection */}
+                <div>
+                  <Label>Production Stage Category (optional)</Label>
+                  <Select
+                    value={formData.stageCategoryId}
+                    onValueChange={(value) => handleStageCategoryChange(value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose category or use manual stages" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="manual">
+                        Manual selection (choose stages)
+                      </SelectItem>
+                      {loadingData ? (
+                        <span className="p-2 text-sm text-muted-foreground">
+                          Loading...
+                        </span>
+                      ) : productionStageCategories.length === 0 ? (
+                        <span className="p-2 text-sm text-muted-foreground">
+                          No categories
+                        </span>
+                      ) : (
+                        productionStageCategories.map((cat: any) => (
+                          <SelectItem key={cat.id} value={String(cat.id)}>
+                            <div className="flex items-center justify-between">
+                              <span>{cat.category_name}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {Array.isArray(cat.stages)
+                                  ? cat.stages.length
+                                  : typeof cat.stages === "string"
+                                  ? JSON.parse(cat.stages || "[]").length
+                                  : 0}{" "}
+                                stages
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Render manual stage multi-select only when in manual mode */}
+                {formData.stageCategoryId === "manual" && (
+                  <ProductionStages
+                    setFormData={setFormData}
+                    formData={formData}
+                    productionStages={productionStages}
+                  />
+                )}
+
+                {/* When a category is selected, show read-only summary */}
+                {formData.stageCategoryId !== "manual" &&
+                  formData.stageCategoryId !== "" && (
+                    <div className="mt-2 text-sm text-muted-foreground">
+                      {/* Selected category stages:{" "}
+                      {formData.productionStages.length > 0
+                        ? formData.productionStages.join(", ")
+                        : "None"} */}
+                    </div>
+                  )}
 
                 {mode == "edit" && (
                   <div className="space-y-2">

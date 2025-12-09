@@ -55,6 +55,7 @@ export async function addProductionBatch(data: {
   stages: string[];
   floor: number;
   token: string;
+  stageCategoryId?: string; // Add this
   manualProduct?: {
     productName: string;
     rawMaterials: Array<{
@@ -67,13 +68,13 @@ export async function addProductionBatch(data: {
 }) {
   console.log(data);
   const formData = new FormData();
+
   if (data.productId) {
-    // Case 1: Existing product
     formData.append("productId", data.productId);
   } else if (data.manualProduct) {
     const transformedRawMaterials = data.manualProduct.rawMaterials.map(
       (material) => ({
-        raw_material_id: parseInt(material.rawMaterialId), // Convert to number
+        raw_material_id: parseInt(material.rawMaterialId),
         quantity: material.quantity,
         unit: material.unit,
       })
@@ -85,17 +86,26 @@ export async function addProductionBatch(data: {
       JSON.stringify(transformedRawMaterials)
     );
   } else {
-    // Fallback - should not happen due to validation
     formData.append("productId", "");
   }
+
   formData.append("quantity", data.quantity);
   formData.append("clientId", data.clientId);
   formData.append("expectedCompletionDate", data.expectedCompletionDate);
   formData.append("productionHeadEmployeeId", data.productionHeadEmployeeId);
   formData.append("productionNotes", data.productionNotes);
   formData.append("token", data.token);
-  formData.append("stages", JSON.stringify(data.stages));
   formData.append("floor", data.floor.toString());
+
+  // Handle stages vs stageCategoryId
+  if (data.stageCategoryId && data.stageCategoryId !== "manual") {
+    // User selected a category
+    formData.append("stageCategoryId", data.stageCategoryId);
+  } else if (data.stages && data.stages.length > 0) {
+    // User selected manual stages
+    formData.append("stages", JSON.stringify(data.stages));
+  }
+
   console.log(Object.fromEntries(formData));
 
   const response = await axios.post(
@@ -216,7 +226,6 @@ const Production = () => {
 
   console.log(filterEdProductionStatus);
 
-
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "completed":
@@ -273,35 +282,35 @@ const Production = () => {
     fetchallProductionData();
   }, []);
 
-async function fetchOrderDetails(id: string) {
-  try {
-    const response = await fetch(
-      `${BASE_URL}/orders/get-details/${id}/${token}`
-    );
-    const result = await response.json();
-    console.log("Fetched Order Data:", result);
+  async function fetchOrderDetails(id: string) {
+    try {
+      const response = await fetch(
+        `${BASE_URL}/orders/get-details/${id}/${token}`
+      );
+      const result = await response.json();
+      console.log("Fetched Order Data:", result);
 
-    if (result.errFlag === 0 && result.data) {
-      // 1. Set the prefill data
-      setPrefillData(result.data);
-      // 2. Open the form dialog
-      setCreateBatchOpen(true);
-      setMode("add"); // Ensure it's in ADD mode when prefilling from an Order
-    } else {
-      console.error("Failed to fetch order details:", result.message);
+      if (result.errFlag === 0 && result.data) {
+        // 1. Set the prefill data
+        setPrefillData(result.data);
+        // 2. Open the form dialog
+        setCreateBatchOpen(true);
+        setMode("add"); // Ensure it's in ADD mode when prefilling from an Order
+      } else {
+        console.error("Failed to fetch order details:", result.message);
+      }
+    } catch (error) {
+      console.error("Error fetching order details:", error);
     }
-  } catch (error) {
-    console.error("Error fetching order details:", error);
   }
-}
 
-useEffect(() => {
-  const orderIdFromState = (location.state as any)?.orderId;
-  if (orderIdFromState) {
-    console.log("Navigated to Production with orderId:", orderIdFromState);
-    fetchOrderDetails(orderIdFromState);
-  }
-}, [location]);
+  useEffect(() => {
+    const orderIdFromState = (location.state as any)?.orderId;
+    if (orderIdFromState) {
+      console.log("Navigated to Production with orderId:", orderIdFromState);
+      fetchOrderDetails(orderIdFromState);
+    }
+  }, [location]);
 
   const handleStatusChange = async (batchId, status) => {
     console.log(status);

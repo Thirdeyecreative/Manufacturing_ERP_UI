@@ -23,46 +23,44 @@ import { BASE_URL } from "@/hooks/baseUrls";
 import { ProductionStageCategoriesForm } from "@/components/forms/ProductionStageCategoriesForm";
 import { ProductionStagesCategoriesTable } from "@/components/masters/ProductionStagesCategoriesTable";
 // Add a production stage
-export const addProductionStage = async ({
-  stageName,
-  stageHeadName,
-  stageHeadEmployeeId,
-  stageEmployees,
-  token,
-}) => {
+export const addStageCategory = async ({ categoryName, stages, token }) => {
   const formData = new FormData();
-  formData.append("stageName", stageName);
-  formData.append("stageHeadName", stageHeadName);
-  formData.append("stageHeadEmployeeId", stageHeadEmployeeId);
-  formData.append("stageEmployees", JSON.stringify(stageEmployees)); // since it's json objects
+  formData.append("categoryName", categoryName);
+  // Backend expects a JSON string for the list: "[1, 2, 3]"
+  formData.append("stages", JSON.stringify(stages));
   formData.append("token", token);
 
-  return await axios.post(`${BASE_URL}/production-stages/add`, formData);
+  return await axios.post(
+    `${BASE_URL}/production-stage-categories/add`,
+    formData
+  );
 };
 
 // Update a production stage
-export const updateProductionStage = async ({
-  stageId,
-  stageName,
-  stageHeadName,
-  stageHeadEmployeeId,
-  stageEmployees,
+export const updateStageCategory = async ({
+  categoryId,
+  categoryName,
+  stages,
   token,
 }) => {
   const formData = new FormData();
-  formData.append("stageId", stageId);
-  formData.append("stageName", stageName);
-  formData.append("stageHeadName", stageHeadName);
-  formData.append("stageHeadEmployeeId", stageHeadEmployeeId);
-  formData.append("stageEmployees", JSON.stringify(stageEmployees));
+  formData.append("categoryId", categoryId); // Ensure backend accepts this
+  formData.append("categoryName", categoryName);
+  formData.append("stages", JSON.stringify(stages));
   formData.append("token", token);
 
-  return await axios.post(`${BASE_URL}/production-stages/update`, formData);
+  // Adjust URL based on your actual update endpoint
+  return await axios.post(
+    `${BASE_URL}/production-stage-categories/update`,
+    formData
+  );
 };
 
 // Get all production stages
 export const getAllProductionStages = async (token) => {
-  return await axios.get(`${BASE_URL}/production-stages/get-all/${token}`);
+  return await axios.get(
+    `${BASE_URL}/production-stage-categories/get-all/${token}`
+  );
 };
 
 // Get details of a production stage
@@ -74,8 +72,9 @@ export const getProductionStageDetails = async (stageId, token) => {
 
 // Change status of a production stage
 export const changeProductionStageStatus = async (stageId, status, token) => {
+  console.log(stageId, status, token);
   return await axios.get(
-    `${BASE_URL}/production-stages/change-status/${stageId}/${status}/${token}`
+    `${BASE_URL}/production-stage-categories/change-status/${stageId}/${status}/${token}`
   );
 };
 
@@ -124,7 +123,7 @@ const MasterProductionStagesCategories = () => {
           </div>
           <Button onClick={() => setIsFormOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
-            Add Stage
+            Add Categories
           </Button>
         </div>
 
@@ -147,7 +146,7 @@ const MasterProductionStagesCategories = () => {
         <ProductionStageCategoriesForm
           open={isFormOpen}
           onOpenChange={setIsFormOpen}
-          fetchProductionStages={() => fetchProductionStages(token)}
+          refreshData={() => fetchProductionStages(token)}
         />
       </div>
     </MainLayout>

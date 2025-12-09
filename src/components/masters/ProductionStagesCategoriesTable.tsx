@@ -18,69 +18,113 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Edit, Trash2, Search, ToggleRight, ToggleLeft } from "lucide-react";
+import { Edit, ToggleRight, ToggleLeft, Search, Layers } from "lucide-react";
+// Make sure you have an API function for changing category status, or reuse existing if compatible
 import { changeProductionStageStatus } from "@/pages/master/MasterProductionStages";
 import { ProductionStageCategoriesForm } from "../forms/ProductionStageCategoriesForm";
 
-interface ProductionStage {
+// Updated Interface based on your new data structure
+interface ProductionStageCategory {
   id: number;
-  stage_name: string;
-  stage_head_name: string;
-  stage_head_employee_id: number;
-  status: number; // 1 = active, 0 = inactive (assuming)
-  created_admin_id: number;
-  created_at: string; // ISO datetime string
-  update_admin_id: number;
-  updated_at: string; // ISO datetime string
+  category_name: string;
+  stages: string; // Comes as string "[1, 2, 3]"
+  status: number; // 1 = active, 0 = inactive
+  created_at: string;
+  updated_at: string | null;
 }
 
 export function ProductionStagesCategoriesTable({
-  mockProductionStages,
+  mockProductionStages, // This is actually the list of Categories now
   setMockProductionStages,
-  fetchProductionStages,
+  fetchProductionStages, // Function to refresh data
 }: any) {
-  console.log(mockProductionStages);
-
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [editFormOpen, setEditFormOpen] = useState(false);
-  const [selectedStage, setSelectedStage] = useState<ProductionStage | null>(
-    null
-  );
-
+  const [selectedCategory, setSelectedCategory] = useState<any | null>(null);
+  const [SelectedCategoryforToggle, setSelectedCategoryforToggle] = useState<any | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-
   const token = localStorage.getItem("token");
 
-  const filteredStages = mockProductionStages.filter(
-    (stage) =>
-      stage?.stage_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      stage?.stage_head_name?.toLowerCase().includes(searchTerm.toLowerCase())
+  // Filter based on Category Name
+  const filteredCategories = mockProductionStages.filter(
+    (cat: ProductionStageCategory) =>
+      cat.category_name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleEditStage = (stage: ProductionStage) => {
-    setSelectedStage(stage);
+  // --- Handlers ---
+
+  const handleEditCategory = (category: ProductionStageCategory) => {
+    // We need to parse the stages string back to an array for the form
+    let parsedStages: any[] = [];
+    try {
+      const rawStages = JSON.parse(category.stages);
+      // The form expects an array of objects { id, stage_name } or just IDs depending on your implementation.
+      // Since we only have IDs here, we map them to objects with ID only.
+      // The Form component logic we wrote previously handles the ID matching.
+      parsedStages = Array.isArray(rawStages)
+        ? rawStages.map((id) => ({ id: id }))
+        : [];
+    } catch (e) {
+      parsedStages = [];
+    }
+
+    setSelectedCategory({
+      ...category,
+      stages: parsedStages, // Pass parsed array
+    });
     setEditFormOpen(true);
   };
 
-  const handleToggleStatus = async (stage: ProductionStage) => {
-    const status = stage.status === 1 ? 0 : 1;
-    const res = changeProductionStageStatus(stage.id, status, token);
+  const handleToggleStatus = async (category: ProductionStageCategory) => {
+    const status = category.status === 1 ? 0 : 1;
 
-    fetchProductionStages();
+    // NOTE: You might need to create a specific API for 'changeCategoryStatus'
+    // if the backend logic differs from the standard stage status change.
+    const res = await changeProductionStageStatus(category.id, status, token);
 
     if (res) {
       toast({
         title: "Status Updated",
-        description: `${stage.stage_name} status has been updated to ${
-          status === 1 ? "active" : "inactive"
-        }`,
-        variant: "default",
+        description: `${category.category_name} status updated.`,
       });
+      fetchProductionStages(); // Refresh list
+    }
+    setDeleteConfirmOpen(false);
+  };
+
+  // Helper to safely render the stages list
+  const renderStageBadges = (stagesString: string) => {
+    try {
+      const stageIds = JSON.parse(stagesString);
+      if (!Array.isArray(stageIds) || stageIds.length === 0)
+        return <span className="text-muted-foreground text-xs">No stages</span>;
+
+      return (
+        <div className="flex flex-wrap gap-1">
+          {stageIds.slice(0, 3).map((id, index) => (
+            <Badge
+              key={index}
+              variant="secondary"
+              className="text-xs flex items-center gap-1"
+            >
+              <Layers className="w-3 h-3 text-muted-foreground" />
+              Stage {id}
+            </Badge>
+          ))}
+          {stageIds.length > 3 && (
+            <Badge variant="outline" className="text-xs">
+              +{stageIds.length - 3} more
+            </Badge>
+          )}
+        </div>
+      );
+    } catch (error) {
+      return <span className="text-red-500 text-xs">Invalid Data</span>;
     }
   };
 
@@ -88,16 +132,14 @@ export function ProductionStagesCategoriesTable({
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="relative">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search stages..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-8 w-64"
-              />
-            </div>
+          <div className="relative">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search categories..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-8 w-64"
+            />
           </div>
         </div>
       </CardHeader>
@@ -106,115 +148,110 @@ export function ProductionStagesCategoriesTable({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Stage Name</TableHead>
-                <TableHead>Stage Head</TableHead>
-                <TableHead>Employees</TableHead>
+                <TableHead>Category Name</TableHead>
+                <TableHead>Workflow Stages</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Created Date</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredStages.map((stage) => (
-                <TableRow key={stage.id}>
-                  <TableCell className="font-medium">
-                    {stage.stage_name}
-                  </TableCell>
-                  <TableCell>{stage.stage_head_name}</TableCell>
-                  <TableCell>
-                    {" "}
-                    <div className="flex flex-wrap gap-1">
-                      {" "}
-                      {stage?.employees?.slice(0, 2).map((employee, index) => (
-                        <Badge
-                          key={index}
-                          variant="secondary"
-                          className="text-xs"
+              {filteredCategories.length > 0 ? (
+                filteredCategories.map((category: ProductionStageCategory) => (
+                  <TableRow key={category.id}>
+                    <TableCell className="font-medium">
+                      {category.category_name}
+                    </TableCell>
+
+                    {/* Render the list of Stage IDs as Badges */}
+                    <TableCell>{renderStageBadges(category.stages)}</TableCell>
+
+                    <TableCell>
+                      <Badge
+                        variant={
+                          category.status === 1 ? "default" : "secondary"
+                        }
+                      >
+                        {category.status === 1 ? "Active" : "Inactive"}
+                      </Badge>
+                    </TableCell>
+
+                    <TableCell>
+                      {new Date(category.created_at).toLocaleDateString()}
+                    </TableCell>
+
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleEditCategory(category)}
                         >
-                          {" "}
-                          {employee.name}{" "}
-                        </Badge>
-                      ))}{" "}
-                      {stage?.employees?.length > 2 && (
-                        <Badge variant="outline" className="text-xs">
-                          {" "}
-                          +{stage?.employees?.length - 2} more{" "}
-                        </Badge>
-                      )}{" "}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={stage.status === 1 ? "default" : "secondary"}
-                    >
-                      {stage.status === 1 ? "Active" : "Inactive"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {new Date(stage.created_at).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleEditStage(stage)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setSelectedStage(stage);
-                          setDeleteConfirmOpen(true);
-                        }}
-                      >
-                        {stage.status === 1 ? (
-                          <ToggleRight className="h-4 w-4" />
-                        ) : (
-                          <ToggleLeft className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </div>
+                          <Edit className="h-4 w-4" />
+                        </Button>
+
+                        {/* Toggle Status / "Delete" action */}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedCategoryforToggle(category);
+                            setDeleteConfirmOpen(true);
+                          }}
+                        >
+                          {category.status === 1 ? (
+                            <ToggleRight className="h-4 w-4 text-green-600" />
+                          ) : (
+                            <ToggleLeft className="h-4 w-4 text-slate-400" />
+                          )}
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell
+                    colSpan={5}
+                    className="text-center h-24 text-muted-foreground"
+                  >
+                    No categories found.
                   </TableCell>
                 </TableRow>
-              ))}
+              )}
             </TableBody>
           </Table>
         </div>
       </CardContent>
 
-      {/* Delete Confirmation Dialog */}
+      {/* Confirmation Dialog for Status Change */}
       <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Stage</AlertDialogTitle>
+            <AlertDialogTitle>Change Status?</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this stage?
+              Are you sure you want to change the status of{" "}
+              <b>{SelectedCategoryforToggle?.category_name}</b>?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => handleToggleStatus(selectedStage)}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => handleToggleStatus(SelectedCategoryforToggle)}
             >
-              Delete
+              Confirm
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Edit Stage Form */}
+      {/* Edit Form */}
       <ProductionStageCategoriesForm
         open={editFormOpen}
         onOpenChange={setEditFormOpen}
-        stage={selectedStage}
+        initialData={selectedCategory} // Renamed prop to match Form component
         mode="edit"
-        setMockProductionStages={setMockProductionStages}
-        mockProductionStages={mockProductionStages}
-        fetchProductionStages={() => fetchProductionStages(token)}
+        refreshData={() => fetchProductionStages(token)} // Renamed prop to match Form component
       />
     </Card>
   );

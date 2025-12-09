@@ -27,187 +27,175 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { X, Check } from "lucide-react";
+import { X, Layers } from "lucide-react";
 import { toast } from "sonner";
 import axios from "axios";
 import { BASE_URL } from "@/hooks/baseUrls";
-import {
-  addProductionStage,
-  updateProductionStage,
-} from "@/pages/master/MasterProductionStages";
-import { Separator } from "@/components/ui/separator"; // Assuming you have or can create this simple UI component
 
-// --- ENHANCED VALIDATION SCHEMA ---
+// Import your API functions here
+import {
+  addStageCategory,
+  updateStageCategory,
+} from "@/pages/master/MasterProductionStagesCategories"; // Update path as needed
+
+// --- VALIDATION SCHEMA ---
 const formSchema = z.object({
-  stageName: z
+  categoryName: z
     .string()
-    .min(3, { message: "Stage name must be at least 3 characters." })
+    .min(3, { message: "Category name must be at least 3 characters." })
     .regex(/^[A-Za-z0-9\s-]+$/, {
       message: "Can only contain letters, numbers, spaces, and hyphens.",
     }),
-  stageHead: z.string().min(1, { message: "Please select a stage head." }),
-  stageEmployees: z
-    .array(z.string())
-    .min(1, { message: "Please add at least one employee." }),
-  status: z.enum(["active", "inactive"]),
+  stages: z
+    .array(z.number())
+    .min(1, { message: "Please select at least one stage." }),
 });
 
-type FormData = z.infer<typeof formSchema>;
+type FormDataSchema = z.infer<typeof formSchema>;
 
-interface ProductionStageFormProps {
+interface ProductionStageCategoriesFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  stage?: {
+  initialData?: {
     id: number;
-    stage_name: string;
-    stage_head_name: string;
-    stage_head_employee_id: number;
-    status: number;
-    employees?: Array<{ id: string }>;
+    category_name: string;
+    stages?: Array<{ id: number; stage_name: string }>;
   } | null;
   mode?: "add" | "edit";
-  fetchProductionStages?: () => Promise<void>;
+  refreshData?: () => Promise<void>;
 }
 
 export function ProductionStageCategoriesForm({
   open,
   onOpenChange,
-  stage,
+  initialData,
   mode = "add",
-  fetchProductionStages,
-}: ProductionStageFormProps) {
-  const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
-  const [selectedEmployee, setSelectedEmployee] = useState<string>("");
-  const [mockEmployees, setMockEmployees] = useState<any[]>([]);
+  refreshData,
+}: ProductionStageCategoriesFormProps) {
+  const [availableStages, setAvailableStages] = useState<any[]>([]);
+  const [selectedStageId, setSelectedStageId] = useState<string>("");
   const [loading, setLoading] = useState(false);
-  const [stageHeadSearch, setStageHeadSearch] = useState<string>(""); // NEW: Search state for Stage Head
-  const [employeeSearch, setEmployeeSearch] = useState<string>(""); // NEW: Search state for Stage Employees
+  const [stageSearch, setStageSearch] = useState<string>("");
   const Token = localStorage.getItem("token");
 
-  const form = useForm<FormData>({
+  const form = useForm<FormDataSchema>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      stageName: "",
-      stageHead: "",
-      stageEmployees: [],
-      status: "active",
+      categoryName: "",
+      stages: [],
     },
   });
 
-  // Pre-populate form when in edit mode
-  useEffect(() => {
-    if (stage && mode === "edit") {
-      const employeeIds =
-        stage.employees?.map((emp) => emp.id.toString()) || [];
-      form.reset({
-        stageName: stage.stage_name,
-        stageHead: stage.stage_head_employee_id.toString(),
-        stageEmployees: employeeIds,
-        status: stage.status === 1 ? "active" : "inactive",
-      });
-      setSelectedEmployees(employeeIds);
-    } else {
-      // Reset form for add mode
-      form.reset({
-        stageName: "",
-        stageHead: "",
-        stageEmployees: [],
-        status: "active",
-      });
-      setSelectedEmployees([]);
-    }
-    setSelectedEmployee("");
-    setStageHeadSearch(""); // Reset search on open/mode change
-    setEmployeeSearch(""); // Reset search on open/mode change
-  }, [stage, open, form, mode]);
+  const selectedStageIds = form.watch("stages");
 
-  // Submit handler with Add/Edit API calls
-  const onSubmit = async (data: FormData) => {
+  // Fetch Available Production Stages for the Dropdown
+  useEffect(() => {
+    const fetchStages = async () => {
+      if (!Token) return;
+      try {
+        const url = `${BASE_URL}/production-stages/get-all/${Token}`;
+        const res = await axios.get(url);
+        setAvailableStages(Array.isArray(res.data) ? res.data : []);
+      } catch (err) {
+        console.error("Failed to fetch production stages:", err);
+      }
+    };
+    if (open) fetchStages();
+  }, [Token, open]);
+
+  // Pre-populate form
+  useEffect(() => {
+    if (initialData && mode === "edit") {
+      const stageIds = initialData.stages?.map((s) => s.id) || [];
+      form.reset({
+        categoryName: initialData.category_name,
+        stages: stageIds,
+      });
+    } else {
+      form.reset({ categoryName: "", stages: [] });
+    }
+    setSelectedStageId("");
+  }, [initialData, open, form, mode]);
+
+  // --- Handlers for Multi-Select ---
+  const addStageToSelection = () => {
+    if (selectedStageId) {
+      const idToAdd = parseInt(selectedStageId);
+      const currentStages = form.getValues("stages");
+      if (!currentStages.includes(idToAdd)) {
+        form.setValue("stages", [...currentStages, idToAdd], {
+          shouldValidate: true,
+        });
+        setSelectedStageId("");
+        setStageSearch("");
+      }
+    }
+  };
+
+  const removeStageFromSelection = (idToRemove: number) => {
+    const currentStages = form.getValues("stages");
+    form.setValue(
+      "stages",
+      currentStages.filter((id) => id !== idToRemove),
+      { shouldValidate: true }
+    );
+  };
+
+  const filterStages = (stages: any[], term: string) => {
+    return stages.filter((stg) =>
+      stg.stage_name?.toLowerCase().includes(term.toLowerCase())
+    );
+  };
+
+  // --- SUBMIT HANDLER (Uses Imported Functions) ---
+  const onSubmit = async (data: FormDataSchema) => {
+    if (!Token) return toast.error("Authentication Error");
     setLoading(true);
+
     try {
-      const payload: any = {
-        stageName: data.stageName,
-        stageHeadEmployeeId: data.stageHead,
-        stageEmployees: data.stageEmployees.map((empId) => ({
-          stage_employee_id: empId,
-        })),
+      let res;
+
+      // Prepare Payload object (not FormData, the API function handles FormData conversion)
+      const payload = {
+        categoryName: data.categoryName,
+        stages: data.stages, // Pass raw array, API func will JSON.stringify it
         token: Token,
       };
 
       if (mode === "add") {
-        await addProductionStage(payload);
-        toast.success("Production stage created successfully!");
-      } else if (mode === "edit" && stage) {
-        payload.stageId = stage.id;
-        // payload.status = data.status === 'active' ? 1 : 0; // Uncomment if needed by API
-        await updateProductionStage(payload);
-        toast.success("Production stage updated successfully!");
+        res = await addStageCategory(payload);
+      } else if (mode === "edit" && initialData) {
+        res = await updateStageCategory({
+          ...payload,
+          categoryId: initialData.id,
+        });
       }
 
-      if (fetchProductionStages) {
-        await fetchProductionStages();
+      // Check response
+      if (res && res.data && res.data.errFlag === 0) {
+        toast.success(res.data.message);
+        if (refreshData) await refreshData();
+        onOpenChange(false);
+      } else {
+        toast.error(res?.data?.message || "Operation failed.");
       }
-      onOpenChange(false);
     } catch (error) {
-      console.error("Error saving production stage:", error);
-      toast.error("Failed to save production stage. Please try again.");
+      console.error("Error saving stage category:", error);
+      toast.error("Failed to save. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  // --- Employee Multi-select Handlers ---
-  const addEmployee = () => {
-    if (selectedEmployee && !selectedEmployees.includes(selectedEmployee)) {
-      const updated = [...selectedEmployees, selectedEmployee];
-      setSelectedEmployees(updated);
-      form.setValue("stageEmployees", updated, { shouldValidate: true });
-      setSelectedEmployee("");
-      setEmployeeSearch(""); // Clear search after adding
-    }
-  };
-
-  const removeEmployee = (employeeId: string) => {
-    const updated = selectedEmployees.filter((emp) => emp !== employeeId);
-    setSelectedEmployees(updated);
-    form.setValue("stageEmployees", updated, { shouldValidate: true });
-  };
-
-  // Fetch employees for dropdowns
-  useEffect(() => {
-    const handleFetchEmployees = async (token: string | null) => {
-      if (!token) return;
-      try {
-        const url = `${BASE_URL}/employees/get-all/${token}`;
-        const res = await axios.get(url);
-        setMockEmployees(res.data);
-      } catch (err) {
-        console.error("Failed to fetch employees:", err);
-      }
-    };
-    handleFetchEmployees(Token);
-  }, [Token]);
-
-  // Filtering logic moved outside JSX for clarity
-  const filterEmployees = (employees: any[], searchTerm: string) => {
-    return employees.filter(
-      (emp) =>
-        emp.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        emp.department?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  };
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>
-            {mode === "edit" ? "Edit" : "Add"} Production Stage
+            {mode === "edit" ? "Edit" : "Add"} Stage Category
           </DialogTitle>
           <DialogDescription>
-            {mode === "edit"
-              ? "Update the production stage details."
-              : "Create a new stage with an assigned head and employees."}
+            Group multiple production stages into a single category workflow.
           </DialogDescription>
         </DialogHeader>
 
@@ -215,13 +203,13 @@ export function ProductionStageCategoriesForm({
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <FormField
               control={form.control}
-              name="stageName"
+              name="categoryName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Stage Name *</FormLabel>
+                  <FormLabel>Category Name *</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="e.g., Cutting, Stitching, Assembly"
+                      placeholder="e.g., Full Shirt Manufacturing"
                       {...field}
                     />
                   </FormControl>
@@ -230,135 +218,69 @@ export function ProductionStageCategoriesForm({
               )}
             />
 
-            {/* --- STAGE HEAD: Select with Search Input --- */}
             <FormField
               control={form.control}
-              name="stageHead"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Stage Head *</FormLabel>
-                  <FormControl>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select stage head" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {/* Search Input for Stage Head */}
-                        <div className="p-2 sticky top-0 bg-white z-10 border-b">
-                          <Input
-                            placeholder="Search employees..."
-                            value={stageHeadSearch}
-                            onChange={(e) => setStageHeadSearch(e.target.value)}
-                            onKeyDown={(e) => e.stopPropagation()}
-                            className="h-9"
-                          />
-                        </div>
-
-                        {/* Filtered Items */}
-                        {filterEmployees(mockEmployees, stageHeadSearch).map(
-                          (employee) => (
-                            <SelectItem
-                              key={employee.id}
-                              value={employee.id.toString()}
-                            >
-                              {employee.name} - {employee.department}
-                              {field.value === employee.id.toString() && (
-                                <Check className="ml-auto h-4 w-4 opacity-100" />
-                              )}
-                            </SelectItem>
-                          )
-                        )}
-                        {filterEmployees(mockEmployees, stageHeadSearch)
-                          .length === 0 && (
-                          <div className="p-2 text-center text-sm text-muted-foreground">
-                            No results found.
-                          </div>
-                        )}
-                      </SelectContent>
-                    </Select>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            {/* --- END STAGE HEAD --- */}
-
-            {/* --- STAGE EMPLOYEES: Multi-select with Search Input --- */}
-            <FormField
-              control={form.control}
-              name="stageEmployees"
+              name="stages"
               render={() => (
                 <FormItem>
-                  <FormLabel>Stage Employees *</FormLabel>
+                  <FormLabel>Included Stages *</FormLabel>
                   <div className="flex gap-2">
                     <Select
-                      value={selectedEmployee}
-                      onValueChange={setSelectedEmployee}
+                      value={selectedStageId}
+                      onValueChange={setSelectedStageId}
                     >
                       <SelectTrigger className="flex-1">
-                        <SelectValue placeholder="Select employee to add" />
+                        <SelectValue placeholder="Select a stage" />
                       </SelectTrigger>
                       <SelectContent>
-                        {/* Search Input for Stage Employees */}
                         <div className="p-2 sticky top-0 bg-white z-10 border-b">
                           <Input
-                            placeholder="Search employees..."
-                            value={employeeSearch}
-                            onChange={(e) => setEmployeeSearch(e.target.value)}
+                            placeholder="Search..."
+                            value={stageSearch}
+                            onChange={(e) => setStageSearch(e.target.value)}
                             onKeyDown={(e) => e.stopPropagation()}
                             className="h-9"
                           />
                         </div>
-
-                        {/* Filtered Items: Exclude already selected employees */}
-                        {filterEmployees(mockEmployees, employeeSearch)
-                          .filter(
-                            (emp) =>
-                              !selectedEmployees.includes(emp.id.toString())
-                          )
-                          .map((employee) => (
+                        {filterStages(availableStages, stageSearch)
+                          .filter((stg) => !selectedStageIds.includes(stg.id))
+                          .map((stage) => (
                             <SelectItem
-                              key={employee.id}
-                              value={employee.id.toString()}
+                              key={stage.id}
+                              value={stage.id.toString()}
                             >
-                              {employee.name} - {employee.department}
+                              {stage.stage_name}
                             </SelectItem>
                           ))}
-                        {filterEmployees(mockEmployees, employeeSearch).filter(
-                          (emp) =>
-                            !selectedEmployees.includes(emp.id.toString())
-                        ).length === 0 && (
-                          <div className="p-2 text-center text-sm text-muted-foreground">
-                            No employees found or all are selected.
-                          </div>
-                        )}
                       </SelectContent>
                     </Select>
                     <Button
                       type="button"
-                      onClick={addEmployee}
-                      disabled={!selectedEmployee}
+                      onClick={addStageToSelection}
+                      disabled={!selectedStageId}
                     >
                       Add
                     </Button>
                   </div>
 
-                  {selectedEmployees.length > 0 && (
-                    <div className="flex flex-wrap gap-2 p-3 border rounded-md bg-muted/50">
-                      {selectedEmployees.map((employeeId) => {
-                        const emp = mockEmployees.find(
-                          (e) => e.id.toString() === employeeId
-                        );
+                  {selectedStageIds.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-2 p-3 border rounded-md bg-slate-50">
+                      {selectedStageIds.map((id, index) => {
+                        const stage = availableStages.find((s) => s.id === id);
                         return (
                           <Badge
-                            key={employeeId}
+                            key={id}
                             variant="secondary"
-                            className="flex items-center gap-1"
+                            className="flex items-center gap-2"
                           >
-                            {emp?.name ?? "Unknown"}
+                            <span className="text-xs text-muted-foreground border-r pr-2">
+                              {index + 1}
+                            </span>
+                            <Layers className="h-3 w-3 text-blue-500" />
+                            {stage?.stage_name}
                             <X
-                              className="h-3 w-3 cursor-pointer"
-                              onClick={() => removeEmployee(employeeId)}
+                              className="h-3 w-3 cursor-pointer hover:text-red-500 ml-1"
+                              onClick={() => removeStageFromSelection(id)}
                             />
                           </Badge>
                         );
@@ -369,7 +291,6 @@ export function ProductionStageCategoriesForm({
                 </FormItem>
               )}
             />
-            {/* --- END STAGE EMPLOYEES --- */}
 
             <div className="flex justify-end gap-3 pt-4">
               <Button
@@ -381,9 +302,7 @@ export function ProductionStageCategoriesForm({
                 Cancel
               </Button>
               <Button type="submit" disabled={loading}>
-                {loading
-                  ? "Saving..."
-                  : `${mode === "edit" ? "Update" : "Create"} Stage`}
+                {loading ? "Saving..." : "Save Category"}
               </Button>
             </div>
           </form>
