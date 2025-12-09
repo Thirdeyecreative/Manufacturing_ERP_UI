@@ -1,0 +1,1327 @@
+import React, { useEffect, useState } from "react";
+
+import axios from "axios";
+
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+
+import { Button } from "@/components/ui/button";
+
+import { Input } from "@/components/ui/input";
+
+import { Label } from "@/components/ui/label";
+
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+import { Textarea } from "@/components/ui/textarea";
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+import { Badge } from "@/components/ui/badge";
+
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command";
+
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+
+import {
+  Package,
+  User,
+  Building2,
+  ChevronsUpDown,
+  Check,
+  AlertTriangle,
+  Plus,
+  Minus,
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
+import ClientSelect from "./ClientSelect";
+import { addProductionBatch, updateProductionBatch } from "@/pages/Production";
+import ProductionStages from "./ProductionStages";
+
+interface ProductionBatchFormProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  mode?: "add" | "edit";
+  batchData?: any;
+  prefillOrderData?: any;
+  token: string;
+  baseUrl: string;
+  onSuccess: () => void;
+}
+
+interface ProductOption {
+  id: string;
+  name: string;
+  brand?: string;
+}
+
+interface ClientOption {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  priority?: string;
+  client_name?: string;
+}
+
+interface Employee {
+  id: string;
+
+  name: string;
+
+  department?: string;
+
+  currentLoad?: number;
+}
+
+interface RawMaterial {
+  material_name: string;
+
+  quantity: number;
+
+  unit: string;
+
+  rawMaterialId?: string;
+}
+
+export function ProductionBatchForm({
+  open,
+  onOpenChange,
+  mode = "add",
+  batchData,
+  prefillOrderData,
+  token,
+  baseUrl,
+  onSuccess,
+}: ProductionBatchFormProps) {
+  const { toast } = useToast();
+
+  const [formData, setFormData] = useState({
+    ordersId: "",
+    productId: "",
+    clientId: "",
+    quantity: "",
+    priority: "normal",
+    expectedCompletion: "",
+    productionHead: "",
+    notes: "",
+    status: "",
+    productionStages: [],
+    floor: 0,
+    manualProductName: "",
+    isManualProduct: false,
+    manualRawMaterials: [] as RawMaterial[],
+  });
+
+  const [canProceed, setCanProceed] = useState(true);
+  const [productOptions, setProductOptions] = useState<ProductOption[]>([]);
+  const [clients, setClients] = useState<ClientOption[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [orders, setOrders] = useState<any[]>([]);
+  // Manual product states
+  const [showManualProduct, setShowManualProduct] = useState(false);
+  const [materialCategories, setMaterialCategories] = useState<
+    { id: string; materialCategory: string; stockQty: number }[]
+  >([]);
+  const [units, setUnits] = useState<{ unit: string }[]>([]);
+  const [manualProductErrors, setManualProductErrors] = useState<any>({
+    rawMaterials: [],
+  });
+
+  // Client popover/search
+
+  const [clientSearchOpen, setClientSearchOpen] = useState(false);
+  const [clientSearchValue, setClientSearchValue] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [loadingData, setLoadingData] = useState(true);
+  const [productionStages, setProductionStages] = useState<any[]>([]);
+
+  // Fetch all data including material categories and units
+
+  useEffect(() => {
+    let cancelled = false;
+    const fetchAll = async () => {
+      setLoadingData(true);
+      try {
+        const headers = {};
+        const [
+          productsRes,
+          clientsRes,
+          employeesRes,
+          rawMaterialsRes,
+          materialCategoriesRes,
+          unitsRes,
+          ordersRes,
+        ] = await Promise.all([
+          axios.get(`${baseUrl}/product-skus/get-all/${token}`, { headers }),
+          axios.get(`${baseUrl}/clients/get-all/${token}`, { headers }),
+          axios.get(`${baseUrl}/employees/get-all/${token}`, { headers }),
+          axios.get(`${baseUrl}/production-stages/get-all/${token}`, {
+            headers,
+          }),
+          axios.get(`${baseUrl}/raw-materials/get-all/${token}`, { headers }),
+          axios.get(`${baseUrl}/units/get-units/${token}`, { headers }),
+          axios.get(`${baseUrl}/orders/get-all/${token}`, { headers }),
+        ]);
+
+        if (cancelled) return;
+
+        setOrders(
+          ordersRes.data?.data && Array.isArray(ordersRes.data.data)
+            ? ordersRes.data.data
+            : Array.isArray(ordersRes.data)
+            ? ordersRes.data
+            : ordersRes.data?.result || []
+        );
+
+        setProductOptions(
+          Array.isArray(productsRes.data)
+            ? productsRes.data
+            : productsRes.data?.result || []
+        );
+
+        setClients(
+          Array.isArray(clientsRes.data)
+            ? clientsRes.data
+            : clientsRes.data?.result || []
+        );
+
+        setEmployees(
+          Array.isArray(employeesRes.data)
+            ? employeesRes.data
+            : employeesRes.data?.result || []
+        );
+
+        setProductionStages(
+          Array.isArray(rawMaterialsRes.data)
+            ? rawMaterialsRes.data
+            : rawMaterialsRes.data?.result || []
+        );
+
+        // Set material categories and units for manual product
+
+        setMaterialCategories(
+          Array.isArray(materialCategoriesRes.data)
+            ? materialCategoriesRes.data.map((m: any) => ({
+                id: String(m.id),
+                materialCategory: m.material_name,
+                stockQty: m.stock_qty,
+              }))
+            : materialCategoriesRes.data?.result?.map((m: any) => ({
+                id: String(m.id),
+                materialCategory: m.material_name,
+                stockQty: m.stock_qty,
+              })) || []
+        );
+
+        setUnits(
+          Array.isArray(unitsRes.data)
+            ? unitsRes.data.map((u: any) => ({ unit: u.unit_name }))
+            : unitsRes.data?.result?.map((u: any) => ({ unit: u.unit_name })) ||
+                []
+        );
+      } catch (err) {
+        console.error("Failed to fetch lists:", err);
+        toast({
+          title: "Failed to load data",
+          description:
+            "Could not fetch products/clients/employees. Check your API and token.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoadingData(false);
+      }
+    };
+
+    fetchAll();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [baseUrl, token, toast]);
+
+  // Prefill in edit mode
+
+  useEffect(() => {
+    if (mode === "edit" && batchData) {
+      setFormData({
+        ordersId: batchData.orderId || batchData.order_id || "",
+        productId: batchData.productId || batchData.product_id || "",
+        clientId:
+          batchData.clientId || batchData.client_id || batchData.clientId || "",
+        quantity: String(batchData.planned_qty || batchData.qty || ""),
+        priority: batchData.priority || "normal",
+        expectedCompletion:
+          batchData.expectedCompletionDate ||
+          batchData.expected_completion ||
+          batchData.expected_completion_date ||
+          "",
+        productionHead:
+          batchData.productionHeadEmployeeId ||
+          batchData.production_head_employee_id ||
+          batchData.productionHead ||
+          "",
+        notes:
+          batchData.productionNotes ||
+          batchData.production_notes ||
+          batchData.notes ||
+          "",
+        productionStages: batchData.stages
+          ? batchData.stages.map((st: any) => st.stage_id.toString())
+          : [],
+        status: batchData.batch_status,
+        floor: batchData.floor,
+        manualProductName: "",
+        isManualProduct: false,
+        manualRawMaterials: [],
+      });
+    } else if (mode === "add" && prefillOrderData) {
+      // NEW LOGIC FOR ORDER PREFILL
+      // Logic for ADD mode, pre-filling from an Order object
+      const order = prefillOrderData;
+      console.log(order);
+      setFormData({
+        ordersId: String(order.id || ""),
+        productId: String(order.product_sku_id || ""), // Use product_sku_id
+        clientId: String(order.client_id || ""), // Use client_id
+        quantity: String(order.quantity || ""), // Use quantity
+        priority: "normal", // Default, as it's not in the order data
+        expectedCompletion: order.expected_delivery_date
+          ? new Date(order.expected_delivery_date).toISOString().split("T")[0] // Format date to YYYY-MM-DD
+          : "",
+        productionHead: "", // Let the user select
+        notes: order.notes || "", // Use notes
+        productionStages: [], // Let the user select stages
+        status: "", // Not applicable in Add mode, will be 'scheduled' by API
+        floor: 0, // Let the user fill
+        manualProductName: "",
+        isManualProduct: false,
+        manualRawMaterials: [],
+      });
+      setShowManualProduct(false);
+    } else if (mode === "add") {
+      // Reset when mode is add
+      setFormData({
+        ordersId: "",
+        productId: "",
+        clientId: "",
+        quantity: "",
+        priority: "normal",
+        expectedCompletion: "",
+        productionHead: "",
+        notes: "",
+        productionStages: [],
+        status: "",
+        floor: 0,
+        manualProductName: "",
+        isManualProduct: false,
+        manualRawMaterials: [
+          { material_name: "", quantity: 0, unit: "", rawMaterialId: "" },
+        ],
+      });
+    }
+  }, [mode, batchData || prefillOrderData]);
+
+  const selectedProduct = productOptions.find(
+    (p) => p.id === formData.productId
+  );
+
+  const selectedClient = clients.find((c) => c.id === formData.clientId);
+
+  const filteredClients = clients.filter(
+    (client) =>
+      client.name?.toLowerCase().includes(clientSearchValue.toLowerCase()) ||
+      client.email?.toLowerCase().includes(clientSearchValue.toLowerCase())
+  );
+
+  const handleProductChange = (productId: string) => {
+    if (productId === "manual") {
+      setShowManualProduct(true);
+
+      setFormData((prev) => ({
+        ...prev,
+
+        productId: "",
+
+        isManualProduct: true,
+
+        manualProductName: "",
+
+        manualRawMaterials: [
+          { material_name: "", quantity: 0, unit: "", rawMaterialId: "" },
+        ],
+      }));
+    } else {
+      setShowManualProduct(false);
+
+      setFormData((prev) => ({
+        ...prev,
+
+        productId,
+
+        isManualProduct: false,
+
+        manualProductName: "",
+
+        manualRawMaterials: [],
+      }));
+    }
+  };
+
+  const handleClientSelect = (clientId: string) => {
+    setFormData((prev) => ({ ...prev, clientId }));
+
+    setClientSearchOpen(false);
+  };
+
+  // Manual product handlers
+
+  const handleManualProductNameChange = (value: string) => {
+    setFormData((prev) => ({ ...prev, manualProductName: value }));
+  };
+
+  const handleManualMaterialChange = (
+    index: number,
+
+    field: string,
+
+    value: string | number
+  ) => {
+    const updatedMaterials = [...formData.manualRawMaterials];
+
+    updatedMaterials[index] = { ...updatedMaterials[index], [field]: value };
+
+    setFormData((prev) => ({ ...prev, manualRawMaterials: updatedMaterials }));
+
+    if (manualProductErrors.rawMaterials[index]?.[field]) {
+      const newErrors = { ...manualProductErrors };
+
+      delete newErrors.rawMaterials[index][field];
+
+      if (Object.keys(newErrors.rawMaterials[index]).length === 0)
+        newErrors.rawMaterials[index] = undefined;
+
+      setManualProductErrors(newErrors);
+    }
+  };
+
+  const handleManualMaterialAdd = () => {
+    setFormData((prev) => ({
+      ...prev,
+
+      manualRawMaterials: [
+        ...prev.manualRawMaterials,
+
+        { material_name: "", quantity: 0, unit: "", rawMaterialId: "" },
+      ],
+    }));
+  };
+
+  const handleManualMaterialRemove = (index: number) => {
+    if (formData.manualRawMaterials.length > 1) {
+      setFormData((prev) => ({
+        ...prev,
+
+        manualRawMaterials: prev.manualRawMaterials.filter(
+          (_, i) => i !== index
+        ),
+      }));
+    }
+  };
+
+  const getAvailableMaterials = (currentIndex: number) => {
+    const selectedMaterialIds = formData.manualRawMaterials
+
+      .map((material, index) =>
+        index !== currentIndex ? material.rawMaterialId : null
+      )
+
+      .filter(Boolean);
+
+    return materialCategories.filter(
+      (material) => !selectedMaterialIds.includes(material.id)
+    );
+  };
+
+  // Validate manual product
+
+  const validateManualProduct = () => {
+    const newErrors: any = { rawMaterials: [] };
+
+    if (formData.manualRawMaterials.length === 0) {
+      newErrors.rawMaterialsError = "At least one raw material is required.";
+    }
+
+    formData.manualRawMaterials.forEach((rm, index) => {
+      const itemErrors: any = {};
+
+      if (!rm.rawMaterialId) itemErrors.rawMaterialId = "Required.";
+
+      if (!rm.quantity || rm.quantity <= 0)
+        itemErrors.quantity = "Must be > 0.";
+
+      if (!rm.unit) itemErrors.unit = "Required.";
+
+      const selectedMaterial = materialCategories.find(
+        (m) => m.id === rm.rawMaterialId
+      );
+
+      if (selectedMaterial && rm.quantity > selectedMaterial.stockQty) {
+        itemErrors.quantity = `Max stock: ${selectedMaterial.stockQty}`;
+      }
+
+      if (Object.keys(itemErrors).length > 0)
+        newErrors.rawMaterials[index] = itemErrors;
+    });
+
+    setManualProductErrors(newErrors);
+
+    return (
+      Object.keys(newErrors).length === 0 ||
+      (Object.keys(newErrors).length === 1 &&
+        newErrors.rawMaterials.every((e: any) => !e))
+    );
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Validate manual product if in manual mode
+
+    if (formData.isManualProduct && !validateManualProduct()) {
+      toast({
+        title: "Validation Error",
+
+        description:
+          "Please correct the manual product errors before submitting.",
+
+        variant: "destructive",
+      });
+
+      return;
+    }
+
+    // Basic validation
+
+    if (!formData.productId && !formData.isManualProduct) {
+      toast({
+        title: "Missing product",
+
+        description: "Please select a product or create a manual product.",
+
+        variant: "destructive",
+      });
+
+      return;
+    }
+
+    if (!formData.clientId || !formData.quantity) {
+      toast({
+        title: "Missing fields",
+
+        description:
+          "Please fill client, quantity and expected completion date.",
+
+        variant: "destructive",
+      });
+
+      return;
+    }
+
+    if (!canProceed) {
+      toast({
+        title: "Cannot proceed",
+
+        description: "Raw material validation failed.",
+
+        variant: "destructive",
+      });
+
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const payloadBase: any = {
+        quantity: formData.quantity,
+
+        clientId: formData.clientId,
+
+        expectedCompletionDate: formData.expectedCompletion,
+
+        productionHeadEmployeeId: formData.productionHead,
+
+        productionNotes: formData.notes,
+
+        stages: formData.productionStages,
+
+        floor: formData.floor,
+
+        token,
+      };
+
+      // Add product data based on mode
+
+      if (formData.isManualProduct) {
+        payloadBase.manualProduct = {
+          productName: formData.manualProductName,
+
+          rawMaterials: formData.manualRawMaterials,
+        };
+      } else {
+        payloadBase.productId = formData.productId;
+      }
+
+      if (mode === "add") {
+        const res = await addProductionBatch(payloadBase);
+
+        if (res.errFlag !== 0) {
+          toast({
+            title: "Error",
+
+            description: res.message,
+
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Production Batch Added",
+
+            description: `Batch added successfully. Batch id: ${res.batchId}.`,
+          });
+
+          onSuccess();
+        }
+      } else {
+        const batchId =
+          (batchData &&
+            (batchData.batchId || batchData.id || batchData.batch_id)) ||
+          (payloadBase as any).batchId;
+
+        if (!batchId) {
+          toast({
+            title: "Missing batch id",
+
+            description: "Cannot update: batch id missing in edit mode.",
+
+            variant: "destructive",
+          });
+
+          setLoading(false);
+
+          return;
+        }
+
+        const res = await updateProductionBatch({
+          ...payloadBase,
+
+          batchId,
+
+          batchStatus: formData.status,
+        });
+
+        if (res.errFlag !== 0) {
+          toast({
+            title: "Error",
+
+            description: res.errMsg,
+
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Production Batch Updated",
+
+            description: `Batch updated successfully.`,
+          });
+
+          onSuccess();
+        }
+      }
+
+      onOpenChange(false);
+
+      if (mode === "add") {
+        setFormData({
+          ordersId: "",
+          productId: "",
+          clientId: "",
+          quantity: "",
+          priority: "normal",
+          expectedCompletion: "",
+          productionHead: "",
+          notes: "",
+          productionStages: [],
+          status: "",
+          floor: 0,
+          manualProductName: "",
+          isManualProduct: false,
+          manualRawMaterials: [],
+        });
+
+        setShowManualProduct(false);
+      }
+    } catch (err: any) {
+      console.error("Submit failed:", err);
+
+      toast({
+        title: "Submission failed",
+
+        description:
+          err?.response?.data?.message ||
+          err?.message ||
+          "Something went wrong while submitting the batch.",
+
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>
+            {mode === "add"
+              ? "Create Production Batch"
+              : "Edit Production Batch"}
+          </DialogTitle>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Basic Information */}
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Package className="h-5 w-5" />
+                  Product Details
+                </CardTitle>
+              </CardHeader>
+
+              <CardContent className="space-y-4">
+                <div>
+                  <Label>Order (optional)</Label>
+                  <Select
+                    value={formData.ordersId}
+                    onValueChange={(value) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        ordersId: value,
+                      }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select an order (optional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {loadingData ? (
+                        <span className="p-2 text-sm text-muted-foreground">
+                          Loading orders...
+                        </span>
+                      ) : orders && orders.length > 0 ? (
+                        orders.map((order: any) => (
+                          <SelectItem
+                            key={order.id}
+                            value={order.id.toString()}
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">
+                                {order.order_code}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                ({order.client_name})
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <span className="p-2 text-sm text-muted-foreground">
+                          No orders available
+                        </span>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {!showManualProduct ? (
+                  <div>
+                    <Label htmlFor="product">Product *</Label>
+
+                    <Select
+                      onValueChange={(value) => handleProductChange(value)}
+                      value={formData.productId}
+                      required
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select product" />
+                      </SelectTrigger>
+
+                      <SelectContent>
+                        <SelectItem
+                          value="manual"
+                          className="font-semibold text-blue-600"
+                        >
+                          <div className="flex items-center gap-2">
+                            <Plus className="h-4 w-4" />
+                            Add Manually
+                          </div>
+                        </SelectItem>
+
+                        {loadingData ? (
+                          <span className="p-2 text-sm text-muted-foreground">
+                            Loading...
+                          </span>
+                        ) : productOptions.length === 0 ? (
+                          <span className="p-2 text-sm text-muted-foreground">
+                            No products available
+                          </span>
+                        ) : (
+                          productOptions.map((product: any) => (
+                            <SelectItem
+                              key={product.id}
+                              value={product.id.toString()}
+                            >
+                              {product.product_name}{" "}
+                              {product.product_category_name
+                                ? `(${product.product_category_name})`
+                                : ""}
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <Label className="text-base">Manual Product</Label>
+
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setShowManualProduct(false);
+
+                          setFormData((prev) => ({
+                            ...prev,
+
+                            isManualProduct: false,
+
+                            manualProductName: "",
+
+                            manualRawMaterials: [],
+                          }));
+                        }}
+                      >
+                        Select from existing
+                      </Button>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label>Raw Materials Consumed *</Label>
+
+                        <Button
+                          type="button"
+                          onClick={handleManualMaterialAdd}
+                          size="sm"
+                          variant="outline"
+                        >
+                          <Plus className="h-4 w-4 mr-1" /> Add
+                        </Button>
+                      </div>
+
+                      <div className="border rounded-md p-3 space-y-3 max-h-60 overflow-y-auto">
+                        {formData.manualRawMaterials.length === 0 ? (
+                          <p className="text-sm text-muted-foreground text-center py-4">
+                            No materials added.
+                          </p>
+                        ) : (
+                          formData.manualRawMaterials.map((item, index) => (
+                            <div
+                              key={index}
+                              className="grid grid-cols-12 gap-2 items-end"
+                            >
+                              <div className="col-span-5 space-y-1">
+                                <Label className="text-xs">Material</Label>
+
+                                <Select
+                                  value={item.rawMaterialId || ""}
+                                  onValueChange={(value) =>
+                                    handleManualMaterialChange(
+                                      index,
+
+                                      "rawMaterialId",
+
+                                      value
+                                    )
+                                  }
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select..." />
+                                  </SelectTrigger>
+
+                                  <SelectContent>
+                                    {getAvailableMaterials(index).map((m) => (
+                                      <SelectItem key={m.id} value={m.id}>
+                                        {m.materialCategory}
+                                      </SelectItem>
+                                    ))}
+
+                                    {getAvailableMaterials(index).length ===
+                                      0 && (
+                                      <SelectItem value="no-materials" disabled>
+                                        No materials available
+                                      </SelectItem>
+                                    )}
+                                  </SelectContent>
+                                </Select>
+
+                                {manualProductErrors.rawMaterials[index]
+                                  ?.rawMaterialId && (
+                                  <p className="text-red-500 text-xs">
+                                    {
+                                      manualProductErrors.rawMaterials[index]
+                                        .rawMaterialId
+                                    }
+                                  </p>
+                                )}
+                              </div>
+
+                              <div className="col-span-3 space-y-1">
+                                <Label className="text-xs">Quantity</Label>
+
+                                <Input
+                                  type="number"
+                                  value={item.quantity}
+                                  onChange={(e) =>
+                                    handleManualMaterialChange(
+                                      index,
+
+                                      "quantity",
+
+                                      parseFloat(e.target.value) || 0
+                                    )
+                                  }
+                                  placeholder="0"
+                                  min="0"
+                                  step="0.01"
+                                />
+
+                                {manualProductErrors.rawMaterials[index]
+                                  ?.quantity && (
+                                  <p className="text-red-500 text-xs">
+                                    {
+                                      manualProductErrors.rawMaterials[index]
+                                        .quantity
+                                    }
+                                  </p>
+                                )}
+                              </div>
+
+                              <div className="col-span-3 space-y-1">
+                                <Label className="text-xs">Unit</Label>
+
+                                <Select
+                                  value={item.unit}
+                                  onValueChange={(value) =>
+                                    handleManualMaterialChange(
+                                      index,
+
+                                      "unit",
+
+                                      value
+                                    )
+                                  }
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select..." />
+                                  </SelectTrigger>
+
+                                  <SelectContent>
+                                    {units.map((u, idx) => (
+                                      <SelectItem key={idx} value={u.unit}>
+                                        {u.unit}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+
+                                {manualProductErrors.rawMaterials[index]
+                                  ?.unit && (
+                                  <p className="text-red-500 text-xs">
+                                    {
+                                      manualProductErrors.rawMaterials[index]
+                                        .unit
+                                    }
+                                  </p>
+                                )}
+                              </div>
+
+                              <div className="col-span-1">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={() =>
+                                    handleManualMaterialRemove(index)
+                                  }
+                                  disabled={
+                                    formData.manualRawMaterials.length <= 1
+                                  }
+                                >
+                                  <Minus className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+
+                      {manualProductErrors.rawMaterialsError && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {manualProductErrors.rawMaterialsError}
+                        </p>
+                      )}
+                    </div>
+                  </>
+                )}
+
+                <div>
+                  <Label htmlFor="floor">Floor *</Label>
+
+                  <Input
+                    id="floor"
+                    type="number"
+                    value={formData.floor}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+
+                        floor: Number(e.target.value),
+                      }))
+                    }
+                    placeholder="Enter floor"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="quantity">Quantity *</Label>
+
+                  <Input
+                    id="quantity"
+                    type="number"
+                    value={formData.quantity}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+
+                        quantity: e.target.value,
+                      }))
+                    }
+                    placeholder="Enter quantity"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="client">Client *</Label>
+
+                  <Popover
+                    open={clientSearchOpen}
+                    onOpenChange={setClientSearchOpen}
+                  >
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={clientSearchOpen}
+                        className="w-full justify-between"
+                      >
+                        {selectedClient ? (
+                          <div className="flex items-center gap-2">
+                            <Building2 className="h-4 w-4" />
+
+                            <span className="truncate">
+                              {selectedClient.client_name}
+                            </span>
+                          </div>
+                        ) : (
+                          "Search and select client..."
+                        )}
+
+                        <ChevronsUpDown className="ml-2 h-4 w-full shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+
+                    <PopoverContent className="w-full p-0">
+                      <Command>
+                        <CommandInput
+                          placeholder="Search clients..."
+                          value={clientSearchValue}
+                          onValueChange={setClientSearchValue}
+                        />
+
+                        <CommandEmpty>No client found.</CommandEmpty>
+
+                        <CommandGroup className="max-h-64 overflow-y-auto">
+                          {filteredClients.map((client) => (
+                            <CommandItem
+                              key={client.id}
+                              onSelect={() => handleClientSelect(client.id)}
+                              className="flex items-center justify-between"
+                            >
+                              <div className="flex items-center gap-2">
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+
+                                    formData.clientId === client.id
+                                      ? "opacity-100"
+                                      : "opacity-0"
+                                  )}
+                                />
+
+                                <Building2 className="h-4 w-4" />
+
+                                <div>
+                                  <div className="font-medium">
+                                    {client.client_name}
+                                  </div>
+
+                                  <div className="text-xs text-muted-foreground">
+                                    {client.email}
+                                  </div>
+                                </div>
+                              </div>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                <div>
+                  <Label htmlFor="completion">Expected Completion Date *</Label>
+
+                  <Input
+                    id="completion"
+                    type="date"
+                    value={
+                      formData.expectedCompletion
+                        ? new Date(formData.expectedCompletion)
+
+                            ?.toISOString()
+
+                            ?.split("T")[0]
+                        : ""
+                    }
+                    min={new Date().toISOString().split("T")[0]}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+
+                        expectedCompletion: e.target.value,
+                      }))
+                    }
+                    required
+                  />
+                </div>
+
+                <ProductionStages
+                  setFormData={setFormData}
+                  formData={formData}
+                  productionStages={productionStages}
+                />
+
+                {mode == "edit" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="status">Status</Label>
+
+                    <Select
+                      value={formData.status}
+                      onValueChange={(value) =>
+                        setFormData((prev) => ({
+                          ...prev,
+
+                          status: value,
+                        }))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select batch status" />
+                      </SelectTrigger>
+
+                      <SelectContent>
+                        <SelectItem value="scheduled">Scheduled</SelectItem>
+
+                        <SelectItem value="inprogress">In Progress</SelectItem>
+
+                        <SelectItem value="completed">Completed</SelectItem>
+
+                        <SelectItem value="on_hold">On Hold</SelectItem>
+
+                        <SelectItem value="cancelled">Cancelled</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Production Head Assignment */}
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <User className="h-5 w-5" />
+                  Assignment & Accountability
+                </CardTitle>
+              </CardHeader>
+
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="productionHead">Production Head *</Label>
+
+                  <Select
+                    value={formData.productionHead}
+                    onValueChange={(value) =>
+                      setFormData((prev) => ({
+                        ...prev,
+
+                        productionHead: value,
+                      }))
+                    }
+                    required
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Assign production head" />
+                    </SelectTrigger>
+
+                    <SelectContent>
+                      {loadingData ? (
+                        <span className="p-2 text-sm text-muted-foreground">
+                          Loading...
+                        </span>
+                      ) : employees.length === 0 ? (
+                        <span className="p-2 text-sm text-muted-foreground">
+                          No employees found
+                        </span>
+                      ) : (
+                        employees.map((head: any) => (
+                          <SelectItem key={head.id} value={head.id.toString()}>
+                            <div className="flex items-center justify-between w-full">
+                              <span>
+                                {head.name}{" "}
+                                {head.department_name
+                                  ? `- ${head.department_name}`
+                                  : ""}
+                              </span>
+
+                              {typeof head.currentLoad === "number" && (
+                                <Badge
+                                  variant={
+                                    head.currentLoad > 80
+                                      ? "destructive"
+                                      : head.currentLoad > 60
+                                      ? "secondary"
+                                      : "outline"
+                                  }
+                                  className="ml-2"
+                                >
+                                  {head.currentLoad}% load
+                                </Badge>
+                              )}
+                            </div>
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="notes">Production Notes</Label>
+
+                  <Textarea
+                    id="notes"
+                    value={formData.notes}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+
+                        notes: e.target.value,
+                      }))
+                    }
+                    placeholder="Special instructions, quality requirements, etc."
+                    className="min-h-[100px]"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="flex justify-end space-x-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+            >
+              Cancel
+            </Button>
+
+            <Button
+              type="submit"
+              disabled={
+                loading ||
+                (!formData.productId && !formData.isManualProduct) ||
+                !formData.quantity ||
+                !formData.clientId ||
+                (formData.isManualProduct &&
+                  formData.manualRawMaterials.length == 0)
+              }
+            >
+              {loading
+                ? mode === "add"
+                  ? "Creating..."
+                  : "Updating..."
+                : mode === "add"
+                ? "Create Production Batch"
+                : "Update Production Batch"}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
