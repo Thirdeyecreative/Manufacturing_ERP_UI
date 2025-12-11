@@ -150,7 +150,7 @@ export const updateVendor = async ({
   token,
 }: any) => {
   const formData = new FormData();
-        
+
   formData.append("vendorId", vendorId);
   formData.append("vendorName", vendorName);
   formData.append("contactPerson", contactPerson);
@@ -171,13 +171,13 @@ export const updateVendor = async ({
   formData.append("notes", notes);
   formData.append("token", token);
 
-  
+
   //  [{ raw_material_id: 101 }, { raw_material_id: 102 }];
-  
+
   if (vendorLogo) {
     formData.append("vendorLogo", vendorLogo);
   }
-  
+
   if (raw_materials?.length > 0) {
     formData.append(
       "raw_materials",
@@ -192,7 +192,7 @@ export const updateVendor = async ({
   }
 
   console.log(Object.fromEntries(formData));
-  
+
   const res = await axios.post(`${BASE_URL}/vendors/update-vendor`, formData, {
   });
   console.log(res.data);
@@ -224,9 +224,9 @@ const Vendors = () => {
 
   const token = localStorage.getItem("token") || "";
 
-     const location = useLocation();
-     const result = location.state?.result;
-     console.log(result) 
+  const location = useLocation();
+  const result = location.state?.result;
+  console.log(result)
 
 
   useEffect(() => {
@@ -255,7 +255,7 @@ const Vendors = () => {
       }, 0);
 
       const averageOnTimePercentage = totalOnTimePercentage / res.length;
-      setOnTimeDelivery(averageOnTimePercentage);
+      setOnTimeDelivery(Number(averageOnTimePercentage.toFixed(2)));
     } else {
       setOnTimeDelivery(0);
     }
@@ -560,11 +560,10 @@ const Vendors = () => {
 
                   {/* Upload Section */}
                   <div
-                    className={`flex flex-col items-center justify-center p-6 border-2 border-dashed rounded-lg transition-colors ${
-                      isDragOver
+                    className={`flex flex-col items-center justify-center p-6 border-2 border-dashed rounded-lg transition-colors ${isDragOver
                         ? "border-blue-500 bg-blue-50"
                         : "border-gray-300"
-                    }`}
+                      }`}
                     onDragOver={handleDragOver}
                     onDragLeave={handleDragLeave}
                     onDrop={handleDrop}
@@ -777,8 +776,8 @@ const Vendors = () => {
                           vendor.status === 1
                             ? "default"
                             : vendor.status === "Warning"
-                            ? "secondary"
-                            : "destructive"
+                              ? "secondary"
+                              : "destructive"
                         }
                       >
                         {vendor.status === 1 ? "Active" : "Inactive"}

@@ -14,12 +14,12 @@ const StorageLocationSingleSelect = ({
 
   // Find selected option for single select
   const selectedOption = locationOptions.find(
-    (option) => option.value === formData.storageLocation 
+    (option) => option.value === formData.storageLocation
   );
 
   return (
     <div className="space-y-2">
-      <Label htmlFor="storageLocation">Storage Location</Label>
+      <Label htmlFor="storageLocation">Storage Location *</Label>
       <Select
         id="storageLocation"
         options={locationOptions}

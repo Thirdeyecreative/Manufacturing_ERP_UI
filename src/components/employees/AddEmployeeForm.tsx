@@ -56,9 +56,10 @@ export function AddEmployeeForm({
   const validateForm = () => {
     let newErrors: any = {};
 
-    if (!/^[A-Za-z0-9]{4,}$/i.test(formData.employeeId)) {
+    // Regex: Starts with at least 2 letters, optional hyphen/underscore, ends with numbers
+    if (!/^[A-Za-z]{2,}[-_]?[0-9]+$/.test(formData.employeeId)) {
       newErrors.employeeId =
-        "Employee ID must be more than 3 letters.like EMP001 , EMP-001.";
+        "Employee ID must start with letters followed by numbers (e.g., EMP001, JOB-123).";
     }
 
     if (!/^[A-Za-z\s_-]+$/.test(formData.name)) {

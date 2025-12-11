@@ -124,9 +124,8 @@ export function EmployeesTable({
 
       toast({
         title: "Employee Status Updated",
-        description: `${employee.name}'s status has been updated to ${
-          newStatus === 1 ? "Active" : "Inactive"
-        }.`,
+        description: `${employee.name}'s status has been updated to ${newStatus === 1 ? "Active" : "Inactive"
+          }.`,
       });
       getAllemployees(token);
     } catch (err) {
@@ -217,7 +216,7 @@ export function EmployeesTable({
 
       return () => clearTimeout(scrollTimer);
     }
-  }, [employees, searchResult, hasScrolled, isDataLoaded]); 
+  }, [employees, searchResult, hasScrolled, isDataLoaded]);
 
   return (
     <div className="rounded-md border">
@@ -288,10 +287,9 @@ export function EmployeesTable({
               <TableCell>{employee.department_name}</TableCell>
               <TableCell>
                 <Badge
-                  className={`px-2 py-0.5 rounded-full ${
-                    statusClassMap[normalizeStatus(employee.emp_status)] ||
+                  className={`px-2 py-0.5 rounded-full ${statusClassMap[normalizeStatus(employee.emp_status)] ||
                     statusClassMap.default
-                  }`}
+                    }`}
                 >
                   {employee.emp_status}
                 </Badge>
@@ -366,13 +364,11 @@ export function EmployeesTable({
                 <div>
                   <p className="text-sm font-medium">Status</p>
                   <Badge
-                    variant={
-                      selectedEmployee.status === "Active"
-                        ? "default"
-                        : "secondary"
-                    }
+                    className={`px-2 py-0.5 rounded-full ${statusClassMap[normalizeStatus(selectedEmployee.emp_status)] ||
+                      statusClassMap.default
+                      }`}
                   >
-                    {selectedEmployee.status}
+                    {selectedEmployee.emp_status}
                   </Badge>
                 </div>
                 <div>

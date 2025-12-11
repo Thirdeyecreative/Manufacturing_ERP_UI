@@ -47,6 +47,7 @@ export function UpdateRawMaterialForm({
   isEditMaterialDialogOpen,
   setIsEditMaterialDialogOpen,
 }: UpdateRawMaterialFormProps) {
+  console.log(rawMaterial);
   const { toast } = useToast();
   const token = localStorage.getItem("token") || "";
 
@@ -106,16 +107,16 @@ export function UpdateRawMaterialForm({
       // Clear any previous images and validation errors when a new material is loaded
       setSelectedImages([]);
       setErrors({
-          materialId: "", name: "", category: "", vendor: "", unitOfMeasure: "",
-          unitCost: "", minStockLevel: "", maxStockLevel: "", storageLocation: "",
-          description: "", specifications: "",
+        materialId: "", name: "", category: "", vendor: "", unitOfMeasure: "",
+        unitCost: "", minStockLevel: "", maxStockLevel: "", storageLocation: "",
+        description: "", specifications: "",
       });
     }
   }, [rawMaterial, isEditMaterialDialogOpen]);
 
-  console.log(formData);
-  
-  
+  // console.log(formData);
+
+
 
   // ✅ Centralized validation function with Regex
   const validateForm = () => {
@@ -198,7 +199,7 @@ export function UpdateRawMaterialForm({
       if (res.errFlag !== 0) {
         throw new Error(res.message || "Failed to update raw material.");
       }
-      
+
       // On success, refresh the main list, show a toast, and close the dialog.
       const updatedMaterials = await getAllRawMaterials(token);
       setMockRawMaterials(updatedMaterials);
@@ -228,16 +229,16 @@ export function UpdateRawMaterialForm({
       setErrors((prev) => ({ ...prev, [field as keyof typeof errors]: "" }));
     }
   };
-  
+
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     setSelectedImages(files);
   };
-  
+
   const removeImage = (index: number) => {
     setSelectedImages((prev) => prev.filter((_, i) => i !== index));
   };
-  
+
   // Fetch dropdown data when the component mounts
   useEffect(() => {
     async function fetchData() {
@@ -250,18 +251,18 @@ export function UpdateRawMaterialForm({
         ]);
         setCategories(catRes.data?.map((c: any) => ({ id: c.id, name: c.category_name })) || []);
         setLocations(locRes.data?.map((l: any) => ({ id: l.id, name: l.location_label })) || []);
-               setVendors(
-                 vendorRes.data
-                   // First, filter to only include items where status is 1
-                   ?.filter((v: any) => v.status === 1)
-                   // Then, map the filtered array to the desired shape
-                   .map((v: any) => ({
-                     id: v.id,
-                     name: v.vendor_name,
-                     // You can also include status if you need it later
-                     status: v.status,
-                   })) || []
-               );
+        setVendors(
+          vendorRes.data
+            // First, filter to only include items where status is 1
+            ?.filter((v: any) => v.status === 1)
+            // Then, map the filtered array to the desired shape
+            .map((v: any) => ({
+              id: v.id,
+              name: v.vendor_name,
+              // You can also include status if you need it later
+              status: v.status,
+            })) || []
+        );
         setUnits(unitRes.data?.map((u: any) => ({ id: u.id, name: u.unit_name })) || []);
       } catch (error) {
         toast({
@@ -285,7 +286,7 @@ export function UpdateRawMaterialForm({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 pt-2">
-           {/* --- JSX with conditional error rendering for each field --- */}
+          {/* --- JSX with conditional error rendering for each field --- */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="materialId">Material ID *</Label>
@@ -342,16 +343,16 @@ export function UpdateRawMaterialForm({
               <Input type="number" placeholder="e.g., 450" value={formData.unitCost} onChange={(e) => handleInputChange("unitCost", e.target.value)} />
               {errors.unitCost && <p className="text-red-500 text-sm mt-1">{errors.unitCost}</p>}
             </div>
-             <div className="space-y-2">
-                <StorageLocationMultiSelect
-                  locations={locations}
-                  formData={formData}
-                  handleInputChange={handleInputChange}
-                />
-                 {errors.storageLocation && <p className="text-red-500 text-sm mt-1">{errors.storageLocation}</p>}
-              </div>
+            <div className="space-y-2">
+              <StorageLocationMultiSelect
+                locations={locations}
+                formData={formData}
+                handleInputChange={handleInputChange}
+              />
+              {errors.storageLocation && <p className="text-red-500 text-sm mt-1">{errors.storageLocation}</p>}
+            </div>
           </div>
-          
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="minStockLevel">Minimum Stock Level *</Label>
@@ -364,7 +365,7 @@ export function UpdateRawMaterialForm({
               {errors.maxStockLevel && <p className="text-red-500 text-sm mt-1">{errors.maxStockLevel}</p>}
             </div>
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="description">Description *</Label>
             <Textarea placeholder="Brief description of the raw material" value={formData.description} onChange={(e) => handleInputChange("description", e.target.value)} />
@@ -375,38 +376,47 @@ export function UpdateRawMaterialForm({
             <Textarea placeholder="Technical specs, quality standards, etc." value={formData.specifications} onChange={(e) => handleInputChange("specifications", e.target.value)} />
             {errors.specifications && <p className="text-red-500 text-sm mt-1">{errors.specifications}</p>}
           </div>
-          
+
           <div className="space-y-3">
             <Label>Update Material Images (Optional)</Label>
             <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4">
-                <label htmlFor="images-update" className="cursor-pointer text-center block">
-                  <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                  <p className="text-sm text-muted-foreground mb-2">Upload new images to replace the existing one</p>
-                  <Button type="button" variant="outline" size="sm" asChild>
-                    <span><Image className="h-4 w-4 mr-2" />Choose Images</span>
-                  </Button>
-                  <Input id="images-update" type="file" multiple accept="image/*" onChange={handleImageUpload} className="hidden" />
-                </label>
+              <label htmlFor="images-update" className="cursor-pointer text-center block">
+                <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                <p className="text-sm text-muted-foreground mb-2">Upload new images to replace the existing one</p>
+                <Button type="button" variant="outline" size="sm" asChild>
+                  <span><Image className="h-4 w-4 mr-2" />Choose Images</span>
+                </Button>
+                <Input id="images-update" type="file" multiple accept="image/*" onChange={handleImageUpload} className="hidden" />
+              </label>
             </div>
             {selectedImages.length > 0 && (
-                <div className="grid grid-cols-2 gap-2">
-                  {selectedImages.map((file, index) => (
-                    <div key={index} className="relative group border rounded-lg p-2 bg-muted/50 flex items-center gap-2">
-                      <Image className="h-4 w-4 text-muted-foreground" />
-                      <div className="flex-1">
-                        <p className="text-sm truncate">{file.name}</p>
-                        <p className="text-xs text-muted-foreground">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
-                      </div>
-                      <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeImage(index)}>
-                        <X className="h-3 w-3" />
-                      </Button>
+              <div className="grid grid-cols-2 gap-2">
+                {selectedImages.map((file, index) => (
+                  <div key={index} className="relative group border rounded-lg p-2 bg-muted/50 flex items-center gap-2">
+                    <Image className="h-4 w-4 text-muted-foreground" />
+                    <div className="flex-1">
+                      <p className="text-sm truncate">{file.name}</p>
+                      <p className="text-xs text-muted-foreground">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
                     </div>
-                  ))}
-                </div>
+                    <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeImage(index)}>
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
             )}
-             {selectedImages.length === 0 && rawMaterial?.raw_material_image && (
-                 <p className="text-sm text-muted-foreground mt-2">Current image will be retained unless new images are uploaded.</p>
-             )}
+            {selectedImages.length === 0 && rawMaterial?.raw_material_image && (
+              <div className="mt-2">
+                <p className="text-sm text-muted-foreground mb-2">Current Image:</p>
+                <div className="h-32 w-32 relative rounded-md overflow-hidden border">
+                  <img
+                    src={rawMaterial.raw_material_image}
+                    alt="Current Material"
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex justify-end gap-3 pt-4">

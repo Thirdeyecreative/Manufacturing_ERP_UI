@@ -154,14 +154,16 @@ export async function updateRawMaterial({
   formData.append("rawMaterialCategoryId", rawMaterialCategoryId);
   formData.append("vendorId", vendorId);
   formData.append("specification", specification);
-  formData.append("stockQty", stockQty);
-  formData.append("minStockLevel", minStockLevel);
-  formData.append("maxStockLevel", maxStockLevel);
+  // formData.append("stockQty", stockQty);
+  formData.append("minStockLevel", minStockLevel.toString());
+  formData.append("maxStockLevel", maxStockLevel.toString());
   formData.append("unitOfMeasure", unitOfMeasure);
   formData.append("storageLocationId", storageLocation);
   formData.append("unitCost", unitCost);
   if (materialImage) formData.append("materialImage", materialImage);
   formData.append("token", token);
+
+  // console.log(Object.fromEntries(formData.entries()));
 
   const res = await axios.post(
     `${API_BASE}/raw-materials/update`,
@@ -390,9 +392,8 @@ const RawMaterials = () => {
 
       toast({
         title: "Status Updated",
-        description: `${material.material_name} is now ${
-          newStatus === 0 ? "inactive" : "active"
-        }`,
+        description: `${material.material_name} is now ${newStatus === 0 ? "inactive" : "active"
+          }`,
       });
 
       fetchRawMaterials(token);
@@ -498,121 +499,121 @@ const RawMaterials = () => {
     }
   };
 
-const [selectedFile, setSelectedFile] = useState(null);
-const [isDragOver, setIsDragOver] = useState(false);
-const fileInputRef = useRef(null);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const fileInputRef = useRef(null);
 
-const handleFileSelect = async (event) => {
-  const file = event.target.files[0];
-  if (file && isValidFileType(file)) {
-    setSelectedFile(file);
-    console.log("File selected:", file.name);
-  } else {
-    toast({
-      title: "Invalid File",
-      description: "Please select a valid Excel or CSV file.",
-      variant: "destructive",
-    });
-  }
-};
-
-const handleDragOver = (event) => {
-  event.preventDefault();
-  setIsDragOver(true);
-};
-
-const handleDragLeave = (event) => {
-  event.preventDefault();
-  setIsDragOver(false);
-};
-
-const handleDrop = (event) => {
-  event.preventDefault();
-  setIsDragOver(false);
-
-  const files = event.dataTransfer.files;
-  if (files.length > 0) {
-    const file = files[0];
-    if (isValidFileType(file)) {
+  const handleFileSelect = async (event) => {
+    const file = event.target.files[0];
+    if (file && isValidFileType(file)) {
       setSelectedFile(file);
-      console.log("File dropped:", file.name);
+      console.log("File selected:", file.name);
     } else {
       toast({
         title: "Invalid File",
-        description: "Please drop a valid Excel or CSV file.",
+        description: "Please select a valid Excel or CSV file.",
         variant: "destructive",
       });
     }
-  }
-};
+  };
 
-const isValidFileType = (file) => {
-  const validTypes = [
-    "application/vnd.ms-excel",
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    "text/csv",
-    "application/csv",
-    "application/vnd.ms-excel.sheet.macroEnabled.12",
-  ];
-  return (
-    validTypes.includes(file.type) ||
-    file.name.endsWith(".xlsx") ||
-    file.name.endsWith(".xls") ||
-    file.name.endsWith(".csv")
-  );
-};
+  const handleDragOver = (event) => {
+    event.preventDefault();
+    setIsDragOver(true);
+  };
 
-const handleUpload = async () => {
-  if (!selectedFile) return;
+  const handleDragLeave = (event) => {
+    event.preventDefault();
+    setIsDragOver(false);
+  };
 
-  const formData = new FormData();
-  formData.append("file", selectedFile);
-  formData.append("token", token);
+  const handleDrop = (event) => {
+    event.preventDefault();
+    setIsDragOver(false);
 
-  try {
-    const response = await fetch(`${API_BASE}/raw-materials/bulk-upload`, {
-      method: "POST",
-      body: formData,
-    });
-
-    const data = await response.json();
-    console.log(data);
-
-    if (response.ok) {
-
-      if(data.errFlag !== 0){
+    const files = event.dataTransfer.files;
+    if (files.length > 0) {
+      const file = files[0];
+      if (isValidFileType(file)) {
+        setSelectedFile(file);
+        console.log("File dropped:", file.name);
+      } else {
         toast({
-          title: "Error",
-          description: data.message,
+          title: "Invalid File",
+          description: "Please drop a valid Excel or CSV file.",
           variant: "destructive",
         });
-        return;
       }
-      toast({
-        title: "Success",
-        description: "Raw materials uploaded successfully",
-      });
-      setSelectedFile(null);
-      setIsBulkUploadDialogOpen(false);
-    } else {
-      throw new Error(data.message || "Upload failed");
     }
-  } catch (error) {
-    console.error("Error uploading file:", error);
-    toast({
-      title: "Error",
-      description: "Failed to upload file. Please try again.",
-      variant: "destructive",
-    });
-  }
-};
+  };
 
-const handleClearFile = () => {
-  setSelectedFile(null);
-  if (fileInputRef.current) {
-    fileInputRef.current.value = "";
-  }
-};
+  const isValidFileType = (file) => {
+    const validTypes = [
+      "application/vnd.ms-excel",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "text/csv",
+      "application/csv",
+      "application/vnd.ms-excel.sheet.macroEnabled.12",
+    ];
+    return (
+      validTypes.includes(file.type) ||
+      file.name.endsWith(".xlsx") ||
+      file.name.endsWith(".xls") ||
+      file.name.endsWith(".csv")
+    );
+  };
+
+  const handleUpload = async () => {
+    if (!selectedFile) return;
+
+    const formData = new FormData();
+    formData.append("file", selectedFile);
+    formData.append("token", token);
+
+    try {
+      const response = await fetch(`${API_BASE}/raw-materials/bulk-upload`, {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+      console.log(data);
+
+      if (response.ok) {
+
+        if (data.errFlag !== 0) {
+          toast({
+            title: "Error",
+            description: data.message,
+            variant: "destructive",
+          });
+          return;
+        }
+        toast({
+          title: "Success",
+          description: "Raw materials uploaded successfully",
+        });
+        setSelectedFile(null);
+        setIsBulkUploadDialogOpen(false);
+      } else {
+        throw new Error(data.message || "Upload failed");
+      }
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      toast({
+        title: "Error",
+        description: "Failed to upload file. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleClearFile = () => {
+    setSelectedFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
   return (
     <MainLayout>
       <div className="space-y-6">
@@ -700,11 +701,10 @@ const handleClearFile = () => {
 
                   {/* Upload Section */}
                   <div
-                    className={`flex flex-col items-center justify-center p-6 border-2 border-dashed rounded-lg transition-colors ${
-                      isDragOver
-                        ? "border-blue-500 bg-blue-50"
-                        : "border-gray-300"
-                    }`}
+                    className={`flex flex-col items-center justify-center p-6 border-2 border-dashed rounded-lg transition-colors ${isDragOver
+                      ? "border-blue-500 bg-blue-50"
+                      : "border-gray-300"
+                      }`}
                     onDragOver={handleDragOver}
                     onDragLeave={handleDragLeave}
                     onDrop={handleDrop}
@@ -926,15 +926,15 @@ const handleClearFile = () => {
                           <div className="flex justify-end space-x-1">
                             {(material.stock_status === "low-stock" ||
                               material.stock_status === "out-of-stock") && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => navigate(`/purchases`)}
-                              >
-                                <ShoppingCart className="h-4 w-4 mr-1" />
-                                Create PO
-                              </Button>
-                            )}
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => navigate(`/purchases`)}
+                                >
+                                  <ShoppingCart className="h-4 w-4 mr-1" />
+                                  Create PO
+                                </Button>
+                              )}
                             <Button
                               variant="ghost"
                               size="sm"

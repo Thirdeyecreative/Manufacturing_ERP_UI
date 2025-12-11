@@ -101,6 +101,7 @@ export const AddVendorForm = ({
   // Prefills the form when in 'edit' mode.
   useEffect(() => {
     if (mode === "edit" && vendor) {
+      console.log("Edit mode data:", vendor);
       const categories =
         vendor.raw_materials
           ?.map((m: any) => m.raw_material_category_name)
@@ -221,9 +222,9 @@ export const AddVendorForm = ({
       newErrors.bankAccount = "Bank Account Number is required.";
     }
     // Changed [A-Z] to [A-Za-z] to allow lowercase typing
-   if (!formData.ifscCode || !formData.ifscCode.trim()) {
-     newErrors.ifscCode = "IFSC Code is required.";
-   }
+    if (!formData.ifscCode || !formData.ifscCode.trim()) {
+      newErrors.ifscCode = "IFSC Code is required.";
+    }
     if (!formData.paymentTerms)
       newErrors.paymentTerms = "Select payment terms.";
     if (Number(formData.creditLimit) <= 0)
@@ -657,19 +658,34 @@ export const AddVendorForm = ({
                 <Label htmlFor="logo">Vendor Logo</Label>
                 <div className="border-2 border-dashed border-border rounded-lg p-4 text-center">
                   {formData.logo ? (
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground truncate pr-2">
-                        {typeof formData.logo === "string"
-                          ? "Current Logo"
-                          : formData.logo.name}
-                      </span>
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-4 overflow-hidden">
+                        <div className="h-16 w-16 relative rounded-md overflow-hidden border">
+                          <img
+                            src={
+                              typeof formData.logo === "string"
+                                ? formData.logo
+                                : URL.createObjectURL(formData.logo)
+                            }
+                            alt="Vendor Logo"
+                            className="h-full w-full object-cover"
+                          />
+                        </div>
+                        <span className="text-sm text-muted-foreground truncate max-w-[150px]">
+                          {typeof formData.logo === "string"
+                            ? "Current Logo"
+                            : formData.logo.name}
+                        </span>
+                      </div>
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
                         onClick={() => handleInputChange("logo", null)}
+                        className="text-destructive hover:text-destructive/90"
                       >
                         <X className="h-4 w-4" />
+                        <span className="sr-only">Remove logo</span>
                       </Button>
                     </div>
                   ) : (
@@ -724,8 +740,8 @@ export const AddVendorForm = ({
               {loading
                 ? "Saving..."
                 : mode === "add"
-                ? "Add Vendor"
-                : "Update Vendor"}
+                  ? "Add Vendor"
+                  : "Update Vendor"}
             </Button>
           </div>
         </form>
