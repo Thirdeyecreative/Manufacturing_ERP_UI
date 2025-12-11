@@ -44,11 +44,11 @@ interface OrderData {
   expected_delivery_date: string;
   quantity: number; // Updated column name
   order_status:
-    | "pending"
-    | "confirmed"
-    | "in_production"
-    | "completed"
-    | "cancelled"; // Updated Statuses
+  | "pending"
+  | "confirmed"
+  | "in_production"
+  | "completed"
+  | "cancelled"; // Updated Statuses
   product_sku_id?: number;
   product_name?: string;
   raw_materials_json?: any; // The backend should return this parsed, but handling as string/JSON array just in case
@@ -184,6 +184,23 @@ export const OrderTable = ({
     // navigate(`/production?orderId=${order.id}`);
   };
 
+  const getStatusBadgeStyles = (status: string) => {
+    switch (status) {
+      case "pending":
+        return "bg-yellow-100 text-yellow-800 hover:bg-yellow-100 border-yellow-200";
+      case "confirmed":
+        return "bg-blue-100 text-blue-800 hover:bg-blue-100 border-blue-200";
+      case "in_production":
+        return "bg-purple-100 text-purple-800 hover:bg-purple-100 border-purple-200";
+      case "completed":
+        return "bg-green-100 text-green-800 hover:bg-green-100 border-green-200";
+      case "cancelled":
+        return "bg-red-100 text-red-800 hover:bg-red-100 border-red-200";
+      default:
+        return "bg-gray-100 text-gray-800 hover:bg-gray-100 border-gray-200";
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="rounded-md border">
@@ -230,7 +247,9 @@ export const OrderTable = ({
                 </TableCell>
                 <TableCell>
                   {/* <OrderStatusBadge status={order.order_status} /> */}
-                  <Badge variant="secondary">{order.order_status}</Badge>
+                  <Badge variant="outline" className={getStatusBadgeStyles(order.order_status)}>
+                    {order.order_status.replace("_", " ").toUpperCase()}
+                  </Badge>
                 </TableCell>
                 <TableCell className="text-sm">
                   {new Date(order.created_at).toLocaleDateString()}
@@ -287,13 +306,13 @@ export const OrderTable = ({
 
                       {/* New: Move to Production */}
                       {order.order_status !== "cancelled" && (
-                        
+
                         <DropdownMenuItem
-                        onClick={() => handleMoveToProduction(order)}
+                          onClick={() => handleMoveToProduction(order)}
                         >
-                        <Factory className="h-4 w-4 mr-2" />
-                        Move to Production
-                      </DropdownMenuItem>
+                          <Factory className="h-4 w-4 mr-2" />
+                          Move to Production
+                        </DropdownMenuItem>
                       )}
                     </DropdownMenuContent>
                   </DropdownMenu>

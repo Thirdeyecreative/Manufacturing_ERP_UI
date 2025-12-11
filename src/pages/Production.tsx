@@ -288,7 +288,7 @@ const Production = () => {
         `${BASE_URL}/orders/get-details/${id}/${token}`
       );
       const result = await response.json();
-      console.log("Fetched Order Data:", result);
+      console.log("Fetched Order Data for id ", id, ":", result);
 
       if (result.errFlag === 0 && result.data) {
         // 1. Set the prefill data
@@ -296,6 +296,7 @@ const Production = () => {
         // 2. Open the form dialog
         setCreateBatchOpen(true);
         setMode("add"); // Ensure it's in ADD mode when prefilling from an Order
+        setSelectedOrder(null);
       } else {
         console.error("Failed to fetch order details:", result.message);
       }
@@ -613,10 +614,10 @@ Status: ${order.batch_status}`;
                                 {stage.stage_status === "in_progress"
                                   ? "Active"
                                   : stage.status === "completed"
-                                  ? "Done"
-                                  : stage.status === "on_hold"
-                                  ? "Hold"
-                                  : "Pending"}
+                                    ? "Done"
+                                    : stage.status === "on_hold"
+                                      ? "Hold"
+                                      : "Pending"}
                               </Badge>
                               {stage.stage_status === "in_progress" && (
                                 <div className="text-xs text-muted-foreground mt-1">
@@ -694,7 +695,7 @@ Status: ${order.batch_status}`;
                               <span className="text-sm font-medium">
                                 {Math.round(
                                   (order.completed_qty / order.planned_qty) *
-                                    100
+                                  100
                                 )}
                                 %
                               </span>
@@ -714,8 +715,8 @@ Status: ${order.batch_status}`;
                                 order.batch_status == "completed"
                                   ? "default"
                                   : order.batch_status == "inprogress"
-                                  ? "secondary"
-                                  : "outline"
+                                    ? "secondary"
+                                    : "outline"
                               }
                             >
                               {order.batch_status}
@@ -836,13 +837,11 @@ Status: ${order.batch_status}`;
 
                           <div className="w-full bg-muted rounded-full h-2">
                             <div
-                              className={`h-2 rounded-full transition-all duration-300 bg-red-500 ${
-                                order.delayRisk === "Critical" && "bg-red-500"
-                              }`}
+                              className={`h-2 rounded-full transition-all duration-300 bg-red-500 ${order.delayRisk === "Critical" && "bg-red-500"
+                                }`}
                               style={{
-                                width: `${
-                                  order.completed_qty / order.planned_qty
-                                }%`,
+                                width: `${order.completed_qty / order.planned_qty
+                                  }%`,
                               }}
                             />
                           </div>

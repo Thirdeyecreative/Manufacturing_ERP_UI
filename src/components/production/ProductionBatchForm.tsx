@@ -200,8 +200,8 @@ export function ProductionBatchForm({
           ordersRes.data?.data && Array.isArray(ordersRes.data.data)
             ? ordersRes.data.data
             : Array.isArray(ordersRes.data)
-            ? ordersRes.data
-            : ordersRes.data?.result || []
+              ? ordersRes.data
+              : ordersRes.data?.result || []
         );
 
         setProductOptions(
@@ -233,22 +233,22 @@ export function ProductionBatchForm({
         setMaterialCategories(
           Array.isArray(materialCategoriesRes.data)
             ? materialCategoriesRes.data.map((m: any) => ({
-                id: String(m.id),
-                materialCategory: m.material_name,
-                stockQty: m.stock_qty,
-              }))
+              id: String(m.id),
+              materialCategory: m.material_name,
+              stockQty: m.stock_qty,
+            }))
             : materialCategoriesRes.data?.result?.map((m: any) => ({
-                id: String(m.id),
-                materialCategory: m.material_name,
-                stockQty: m.stock_qty,
-              })) || []
+              id: String(m.id),
+              materialCategory: m.material_name,
+              stockQty: m.stock_qty,
+            })) || []
         );
 
         setUnits(
           Array.isArray(unitsRes.data)
             ? unitsRes.data.map((u: any) => ({ unit: u.unit_name }))
             : unitsRes.data?.result?.map((u: any) => ({ unit: u.unit_name })) ||
-                []
+            []
         );
 
         // production stage categories
@@ -256,8 +256,8 @@ export function ProductionBatchForm({
           Array.isArray(categoriesRes.data)
             ? categoriesRes.data
             : categoriesRes.data?.data && Array.isArray(categoriesRes.data.data)
-            ? categoriesRes.data.data
-            : categoriesRes.data?.result || []
+              ? categoriesRes.data.data
+              : categoriesRes.data?.result || []
         );
       } catch (err) {
         console.error("Failed to fetch lists:", err);
@@ -361,13 +361,15 @@ export function ProductionBatchForm({
         ],
       });
     }
-  }, [mode, batchData || prefillOrderData]);
+  }, [mode, batchData, prefillOrderData]);
 
   const selectedProduct = productOptions.find(
-    (p) => p.id === formData.productId
+    (p) => String(p.id) === String(formData.productId)
   );
 
-  const selectedClient = clients.find((c) => c.id === formData.clientId);
+  const selectedClient = clients.find(
+    (c) => String(c.id) === String(formData.clientId)
+  );
 
   const filteredClients = clients.filter(
     (client) =>
@@ -927,22 +929,22 @@ export function ProductionBatchForm({
 
                                     {getAvailableMaterials(index).length ===
                                       0 && (
-                                      <SelectItem value="no-materials" disabled>
-                                        No materials available
-                                      </SelectItem>
-                                    )}
+                                        <SelectItem value="no-materials" disabled>
+                                          No materials available
+                                        </SelectItem>
+                                      )}
                                   </SelectContent>
                                 </Select>
 
                                 {manualProductErrors.rawMaterials[index]
                                   ?.rawMaterialId && (
-                                  <p className="text-red-500 text-xs">
-                                    {
-                                      manualProductErrors.rawMaterials[index]
-                                        .rawMaterialId
-                                    }
-                                  </p>
-                                )}
+                                    <p className="text-red-500 text-xs">
+                                      {
+                                        manualProductErrors.rawMaterials[index]
+                                          .rawMaterialId
+                                      }
+                                    </p>
+                                  )}
                               </div>
 
                               <div className="col-span-3 space-y-1">
@@ -967,13 +969,13 @@ export function ProductionBatchForm({
 
                                 {manualProductErrors.rawMaterials[index]
                                   ?.quantity && (
-                                  <p className="text-red-500 text-xs">
-                                    {
-                                      manualProductErrors.rawMaterials[index]
-                                        .quantity
-                                    }
-                                  </p>
-                                )}
+                                    <p className="text-red-500 text-xs">
+                                      {
+                                        manualProductErrors.rawMaterials[index]
+                                          .quantity
+                                      }
+                                    </p>
+                                  )}
                               </div>
 
                               <div className="col-span-3 space-y-1">
@@ -1006,13 +1008,13 @@ export function ProductionBatchForm({
 
                                 {manualProductErrors.rawMaterials[index]
                                   ?.unit && (
-                                  <p className="text-red-500 text-xs">
-                                    {
-                                      manualProductErrors.rawMaterials[index]
-                                        .unit
-                                    }
-                                  </p>
-                                )}
+                                    <p className="text-red-500 text-xs">
+                                      {
+                                        manualProductErrors.rawMaterials[index]
+                                          .unit
+                                      }
+                                    </p>
+                                  )}
                               </div>
 
                               <div className="col-span-1">
@@ -1135,7 +1137,8 @@ export function ProductionBatchForm({
                                   className={cn(
                                     "mr-2 h-4 w-4",
 
-                                    formData.clientId === client.id
+                                    String(formData.clientId) ===
+                                      String(client.id)
                                       ? "opacity-100"
                                       : "opacity-0"
                                   )}
@@ -1171,9 +1174,9 @@ export function ProductionBatchForm({
                       formData.expectedCompletion
                         ? new Date(formData.expectedCompletion)
 
-                            ?.toISOString()
+                          ?.toISOString()
 
-                            ?.split("T")[0]
+                          ?.split("T")[0]
                         : ""
                     }
                     min={new Date().toISOString().split("T")[0]}
@@ -1219,8 +1222,8 @@ export function ProductionBatchForm({
                                 {Array.isArray(cat.stages)
                                   ? cat.stages.length
                                   : typeof cat.stages === "string"
-                                  ? JSON.parse(cat.stages || "[]").length
-                                  : 0}{" "}
+                                    ? JSON.parse(cat.stages || "[]").length
+                                    : 0}{" "}
                                 stages
                               </span>
                             </div>
@@ -1341,8 +1344,8 @@ export function ProductionBatchForm({
                                     head.currentLoad > 80
                                       ? "destructive"
                                       : head.currentLoad > 60
-                                      ? "secondary"
-                                      : "outline"
+                                        ? "secondary"
+                                        : "outline"
                                   }
                                   className="ml-2"
                                 >
@@ -1403,8 +1406,8 @@ export function ProductionBatchForm({
                   ? "Creating..."
                   : "Updating..."
                 : mode === "add"
-                ? "Create Production Batch"
-                : "Update Production Batch"}
+                  ? "Create Production Batch"
+                  : "Update Production Batch"}
             </Button>
           </div>
         </form>

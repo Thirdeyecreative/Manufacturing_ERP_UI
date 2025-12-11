@@ -35,11 +35,11 @@ interface Order {
   expected_delivery_date: string;
   quantity: number; // Updated column name
   order_status:
-    | "pending"
-    | "confirmed"
-    | "in_production"
-    | "completed"
-    | "cancelled"; // Updated Statuses
+  | "pending"
+  | "confirmed"
+  | "in_production"
+  | "completed"
+  | "cancelled";
   product_sku_id?: number;
   product_name?: string;
   raw_materials_json?: any;
