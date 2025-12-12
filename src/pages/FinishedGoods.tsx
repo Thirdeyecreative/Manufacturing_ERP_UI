@@ -512,7 +512,7 @@ const FinishedGoods = () => {
     if (!selectedFile) return;
 
     const formData = new FormData();
-    formData.append("file", selectedFile);
+    formData.append("excelFile", selectedFile);
     formData.append("token", token);
 
     try {

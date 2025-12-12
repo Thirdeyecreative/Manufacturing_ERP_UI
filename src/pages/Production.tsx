@@ -172,7 +172,7 @@ export async function getAllProductionBatches(token: string) {
   const response = await axios.get(
     `${BASE_URL}/production-batches/get-all/${token}`
   );
-  console.log(response.data);
+  console.log("getAllProductionBatches ::" ,response.data);
   return response.data;
 }
 
