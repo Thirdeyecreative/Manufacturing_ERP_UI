@@ -1,20 +1,14 @@
 import React, { useEffect, useState } from "react";
-
 import axios from "axios";
-
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-
 import { Button } from "@/components/ui/button";
-
 import { Input } from "@/components/ui/input";
-
 import { Label } from "@/components/ui/label";
-
 import {
   Select,
   SelectContent,
@@ -24,11 +18,8 @@ import {
 } from "@/components/ui/select";
 
 import { Textarea } from "@/components/ui/textarea";
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-
 import { Badge } from "@/components/ui/badge";
-
 import {
   Command,
   CommandEmpty,
@@ -87,21 +78,15 @@ interface ClientOption {
 
 interface Employee {
   id: string;
-
   name: string;
-
   department?: string;
-
   currentLoad?: number;
 }
 
 interface RawMaterial {
   material_name: string;
-
   quantity: number;
-
   unit: string;
-
   rawMaterialId?: string;
 }
 
@@ -318,11 +303,38 @@ export function ProductionBatchForm({
     } else if (mode === "add" && prefillOrderData) {
       // NEW LOGIC FOR ORDER PREFILL
       const order = prefillOrderData;
-      console.log(order);
+      console.log("Prefilling from order:", order);
+
+      let isManual = false;
+      let manualMaterials: RawMaterial[] = [];
+
+      // Check if it is a custom product (no product_sku_id)
+      if (!order.product_sku_id && order.raw_materials_json) {
+        isManual = true;
+        try {
+          const rawMats =
+            typeof order.raw_materials_json === "string"
+              ? JSON.parse(order.raw_materials_json)
+              : order.raw_materials_json;
+
+          if (Array.isArray(rawMats)) {
+            manualMaterials = rawMats.map((rm: any) => ({
+              material_name: rm.material_name || "N/A", // Will need backfill key if missing
+              quantity: parseFloat(rm.quantity) || 0,
+              unit: rm.unit || "",
+              rawMaterialId: String(rm.raw_material_id || rm.rawMaterialId || ""),
+            }));
+          }
+        } catch (e) {
+          console.error("Error parsing raw_materials_json for production:", e);
+        }
+      }
+
       setFormData({
         ordersId: String(order.id || ""),
-        productId: String(order.product_sku_id || ""),
+        productId: isManual ? "" : String(order.product_sku_id || ""),
         clientId: String(order.client_id || ""),
+        // If manual, quantity is usually 1 (or the order quantity), but stages expect total batch size
         quantity: String(order.quantity || ""),
         priority: "normal",
         expectedCompletion: order.expected_delivery_date
@@ -331,14 +343,14 @@ export function ProductionBatchForm({
         productionHead: "",
         notes: order.notes || "",
         productionStages: [],
-        stageCategoryId: "manual", // Add this line
+        stageCategoryId: "manual",
         status: "",
         floor: 0,
-        manualProductName: "",
-        isManualProduct: false,
-        manualRawMaterials: [],
+        manualProductName: isManual ? "Custom Order Product" : "",
+        isManualProduct: isManual,
+        manualRawMaterials: isManual ? manualMaterials : [],
       });
-      setShowManualProduct(false);
+      setShowManualProduct(isManual);
     } else if (mode === "add") {
       // Reset when mode is add
       setFormData({
