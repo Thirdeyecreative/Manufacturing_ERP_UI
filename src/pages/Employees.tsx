@@ -14,7 +14,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Plus, Users, Building2 } from "lucide-react";
+import { Plus, Users, Building2, Search } from "lucide-react";
 
 // ✅ Add Employee
 import axios from "axios";
@@ -163,7 +163,7 @@ export const addDepartment = async (payload: {
 }) => {
   const url = `${BASE_URL}/departments/add`;
   const formData = buildFormData(payload);
-  
+
   return await axios.post(url, formData);
 };
 
@@ -209,6 +209,11 @@ export const changeDepartmentStatus = async (
   return await axios.get(url);
 };
 
+import { Input } from "@/components/ui/input";
+// import { Plus, Users, Building2, Search } from "lucide-react";
+
+// ... existing imports ...
+
 export default function Employees() {
   const [isAddEmployeeDialogOpen, setIsAddEmployeeDialogOpen] = useState(false);
   const [isAddDepartmentDialogOpen, setIsAddDepartmentDialogOpen] =
@@ -217,11 +222,12 @@ export default function Employees() {
   const [departments, setDepartments] = useState([]);
   const [selectedDepartmentId, setSelectedDepartmentId] =
     useState<string>("all");
+  const [searchInput, setSearchInput] = useState(""); // Add search state
   const [isDataLoaded, setIsDataLoaded] = useState(false);
   const token = localStorage.getItem("token") || "";
 
-   const location = useLocation();
-   const result = location.state?.result;
+  const location = useLocation();
+  const result = location.state?.result;
 
 
   const getAllemployees = async (token: string) => {
@@ -230,7 +236,7 @@ export default function Employees() {
       console.log(res);
 
       setEmployees(res);
-        setIsDataLoaded(true);
+      setIsDataLoaded(true);
     } catch (err) {
       console.error("Error fetching employees:", err);
       setIsDataLoaded(true);
@@ -238,37 +244,47 @@ export default function Employees() {
     }
   };
 
-const getAllDepartmentsFetch = async (token) => {
-  try {
-    const res = await getAllDepartments(token);
-    const data = Array.isArray(res.data)
-      ? res.data
-      : Array.isArray(res.data?.data)
-      ? res.data.data
-      : [];
+  const getAllDepartmentsFetch = async (token) => {
+    try {
+      const res = await getAllDepartments(token);
+      const data = Array.isArray(res.data)
+        ? res.data
+        : Array.isArray(res.data?.data)
+          ? res.data.data
+          : [];
 
-    setDepartments(data);
-    console.log("Departments fetched:", data);
-  } catch (err) {
-    console.error("Error fetching departments:", err);
-    setDepartments([]); // prevent map error
-  }
-};
+      setDepartments(data);
+      console.log("Departments fetched:", data);
+    } catch (err) {
+      console.error("Error fetching departments:", err);
+      setDepartments([]); // prevent map error
+    }
+  };
 
   useEffect(() => {
     getAllemployees(token);
     getAllDepartmentsFetch(token);
   }, []);
 
-  const filteredEmployees =
-    selectedDepartmentId === "all"
-      ? employees
-      : employees.filter(
-          (employee) => employee.department_id == selectedDepartmentId // Compares the employee's departmentId with the selected filter ID
-        );
+  // Combined filtering logic
+  const filteredEmployees = employees.filter((employee) => {
+    // Filter by Department
+    const matchesDepartment =
+      selectedDepartmentId === "all" ||
+      employee.department_id == selectedDepartmentId;
 
-  // Determines whether to display search results or the department-filtered list
-   const employeesToDisplay = filteredEmployees;
+    // Filter by Search
+    const searchLower = searchInput.toLowerCase().trim();
+    const matchesSearch =
+      !searchLower ||
+      (employee.name?.toLowerCase() || "").includes(searchLower) ||
+      (employee.email?.toLowerCase() || "").includes(searchLower) ||
+      (employee.employee_code?.toLowerCase() || "").includes(searchLower);
+
+    return matchesDepartment && matchesSearch;
+  });
+
+  const employeesToDisplay = filteredEmployees;
 
   return (
     <MainLayout>
@@ -328,22 +344,33 @@ const getAllDepartmentsFetch = async (token) => {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle>All Employees</CardTitle>
-                <Select
-                  value={selectedDepartmentId}
-                  onValueChange={setSelectedDepartmentId}
-                >
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Filter by Department" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Departments</SelectItem>
-                    {departments.map((department) => (
-                      <SelectItem key={department.id} value={department.id}>
-                        {department.department_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex items-center gap-4">
+                  <div className="relative max-w-sm w-64">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search employees..."
+                      className="pl-10"
+                      value={searchInput}
+                      onChange={(e) => setSearchInput(e.target.value)}
+                    />
+                  </div>
+                  <Select
+                    value={selectedDepartmentId}
+                    onValueChange={setSelectedDepartmentId}
+                  >
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Filter by Department" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Departments</SelectItem>
+                      {departments.map((department) => (
+                        <SelectItem key={department.id} value={department.id}>
+                          {department.department_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </CardHeader>
               <CardContent>
                 <EmployeesTable
