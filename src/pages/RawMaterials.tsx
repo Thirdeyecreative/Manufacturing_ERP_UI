@@ -95,7 +95,7 @@ export async function addRawMaterial({
   rawMaterialCategoryId,
   vendorId,
   specification,
-  stockQty,
+  // stockQty,
   minStockLevel,
   maxStockLevel,
   unitOfMeasure,
@@ -112,7 +112,7 @@ export async function addRawMaterial({
   formData.append("rawMaterialCategoryId", rawMaterialCategoryId);
   formData.append("vendorId", vendorId);
   formData.append("specification", specification);
-  formData.append("stockQty", stockQty);
+  // formData.append("stockQty", stockQty);
   formData.append("minStockLevel", minStockLevel);
   formData.append("maxStockLevel", maxStockLevel);
   formData.append("unitOfMeasure", unitOfMeasure);
@@ -136,7 +136,7 @@ export async function updateRawMaterial({
   rawMaterialCategoryId,
   vendorId,
   specification,
-  stockQty,
+  // stockQty,
   minStockLevel,
   maxStockLevel,
   unitOfMeasure,

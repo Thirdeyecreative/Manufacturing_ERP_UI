@@ -159,7 +159,7 @@ export function AddRawMaterialForm({
         rawMaterialCategoryId: formData.category,
         vendorId: formData.vendor,
         specification: formData.specifications,
-        stockQty: formData.minStockLevel,
+        // stockQty: formData.minStockLevel,
         minStockLevel: formData.minStockLevel,
         maxStockLevel: formData.maxStockLevel,
         unitOfMeasure: formData.unitOfMeasure,
