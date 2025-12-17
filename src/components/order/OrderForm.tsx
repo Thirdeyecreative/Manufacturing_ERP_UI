@@ -64,11 +64,11 @@ interface OrderFormData {
   rawMaterials: RawMaterialItem[];
   notes: string;
   orderStatus:
-    | "pending"
-    | "confirmed"
-    | "in_production"
-    | "completed"
-    | "cancelled";
+  | "pending"
+  | "confirmed"
+  | "in_production"
+  | "completed"
+  | "cancelled";
   totalQuantity: number;
 }
 
@@ -79,11 +79,11 @@ interface InitialOrderData {
   expected_delivery_date: string;
   quantity: number;
   order_status:
-    | "pending"
-    | "confirmed"
-    | "in_production"
-    | "completed"
-    | "cancelled";
+  | "pending"
+  | "confirmed"
+  | "in_production"
+  | "completed"
+  | "cancelled";
   product_sku_id?: number;
   raw_materials_json?: any;
   notes?: string;
@@ -162,6 +162,33 @@ export const OrderForm = ({
     [key: number]: { [field: string]: string };
   }>({});
 
+  console.log(initialOrder)
+
+
+  // --- Helpers ---
+  const formatDateForInput = (dateString: string | undefined | null): string => {
+    if (!dateString) return "";
+    try {
+      // Check if it matches YYYY-MM-DD exactly
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+        return dateString;
+      }
+      // If it contains "T" (ISO format), take the first part
+      if (dateString.includes("T")) {
+        return dateString.split("T")[0];
+      }
+      // Attempt to parse standard date string
+      const d = new Date(dateString);
+      if (!isNaN(d.getTime())) {
+        return d.toISOString().split("T")[0];
+      }
+      return "";
+    } catch (e) {
+      console.error("Error formatting date:", e);
+      return "";
+    }
+  };
+
   // --- Data Fetching ---
   useEffect(() => {
     if (open) {
@@ -182,15 +209,23 @@ export const OrderForm = ({
             typeof materialsData === "string"
               ? JSON.parse(materialsData)
               : materialsData;
-          materials = parsedMaterials.map((item: any) => ({
-            id: String(item.productSkuId || item.id),
-            sku: item.sku || "N/A",
-            productName: item.productName || "N/A",
-            quantity: parseFloat(item.quantity) || 1,
-            unit: item.unit || "",
-            rawMaterialId:
-              item.rawMaterialId || String(item.productSkuId || item.id),
-          }));
+          materials = parsedMaterials.map((item: any) => {
+            // Support snake_case from backend or camelCase/existing
+            const matId = String(
+              item.raw_material_id ||
+              item.rawMaterialId ||
+              item.productSkuId ||
+              item.id
+            );
+            return {
+              id: matId,
+              sku: item.sku || "N/A",
+              productName: item.productName || "N/A",
+              quantity: parseFloat(item.quantity) || 1,
+              unit: item.unit || "",
+              rawMaterialId: matId,
+            };
+          });
         } catch (e) {
           console.error("Failed to process raw_materials_json:", e);
         }
@@ -200,7 +235,9 @@ export const OrderForm = ({
 
       setFormData({
         clientId: String(initialOrder.client_id || ""),
-        expectedDeliveryDate: initialOrder.expected_delivery_date.split("T")[0],
+        expectedDeliveryDate: formatDateForInput(
+          initialOrder.expected_delivery_date
+        ),
         productSkuId: isSingleProduct
           ? String(initialOrder.product_sku_id)
           : "",
@@ -217,12 +254,61 @@ export const OrderForm = ({
     }
   }, [initialOrder, mode, open]);
 
+  // --- Backfill Material Names ---
+  // When rawMaterialsList loads, update any "N/A" names in formData
+  useEffect(() => {
+    if (
+      mode === "edit" &&
+      rawMaterialsList.length > 0 &&
+      formData.rawMaterials.length > 0
+    ) {
+      setFormData((prev) => {
+        const updatedMaterials = prev.rawMaterials.map((item) => {
+          // If name is missing or placeholder, try to find it
+          if (
+            (!item.productName || item.productName === "N/A") &&
+            item.rawMaterialId
+          ) {
+            const matchedMaterial = rawMaterialsList.find(
+              (m) => String(m.id) === String(item.rawMaterialId)
+            );
+            if (matchedMaterial) {
+              return {
+                ...item,
+                productName: matchedMaterial.material_name,
+                sku: matchedMaterial.material_code || item.sku || "N/A",
+              };
+            }
+          }
+          return item;
+        });
+
+        // Only update state if something actually changed to avoid loop
+        const hasChanges = updatedMaterials.some(
+          (item, idx) =>
+            item.productName !== prev.rawMaterials[idx].productName ||
+            item.sku !== prev.rawMaterials[idx].sku
+        );
+
+        return hasChanges ? { ...prev, rawMaterials: updatedMaterials } : prev;
+      });
+    }
+  }, [rawMaterialsList, mode]);
+
   const getCustomers = async () => {
     try {
       setLoadingData(true);
       const response = await fetch(`${BASE_URL}/clients/get-all/${token}`);
       const data = await response.json();
-      setCustomers(Array.isArray(data) ? data : data?.result || []);
+      const rawClients = Array.isArray(data) ? data : data?.result || [];
+
+      // Normalize IDs to strings to match form data types
+      const processedClients = rawClients.map((client: any) => ({
+        ...client,
+        id: String(client.id),
+      }));
+
+      setCustomers(processedClients);
     } catch (error) {
       console.error("Error fetching customers:", error);
       toast({
@@ -940,10 +1026,10 @@ export const OrderForm = ({
                                   )}
                                   {getAvailableMaterials(index).length ===
                                     0 && (
-                                    <SelectItem value="no-materials" disabled>
-                                      No materials available
-                                    </SelectItem>
-                                  )}
+                                      <SelectItem value="no-materials" disabled>
+                                        No materials available
+                                      </SelectItem>
+                                    )}
                                 </SelectContent>
                               </Select>
                               {materialErrors[index]?.rawMaterialId && (
