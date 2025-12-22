@@ -874,7 +874,7 @@ export const OrderForm = ({
                   </Select>
                 </div>
 
-                {/* Status (Only visible on Edit mode) */}
+                {/* Status (Only visible on Edit mode) 
                 {mode === "edit" && (
                   <div className="space-y-2">
                     <Label htmlFor="orderStatus">Order Status</Label>
@@ -898,7 +898,7 @@ export const OrderForm = ({
                       </SelectContent>
                     </Select>
                   </div>
-                )}
+                )} */}
               </CardContent>
             </Card>
 
@@ -1026,10 +1026,10 @@ export const OrderForm = ({
                                   )}
                                   {getAvailableMaterials(index).length ===
                                     0 && (
-                                      <SelectItem value="no-materials" disabled>
-                                        No materials available
-                                      </SelectItem>
-                                    )}
+                                    <SelectItem value="no-materials" disabled>
+                                      No materials available
+                                    </SelectItem>
+                                  )}
                                 </SelectContent>
                               </Select>
                               {materialErrors[index]?.rawMaterialId && (
