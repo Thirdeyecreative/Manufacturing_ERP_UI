@@ -37,6 +37,12 @@ import {
   ToggleLeft,
   QrCode,
 } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { BASE_URL } from "@/hooks/baseUrls";
 import axios from "axios";
 import QRCode from "qrcode";
@@ -734,13 +740,26 @@ Status: ${order.batch_status}`;
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDownloadQrCode(order)}
-                            >
-                              <QrCode className="h-4 w-4" />
-                            </Button>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleDownloadQrCode(order)}
+                                  >
+                                    <QrCode className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="max-w-xs">
+                                    This QR code holds the details of the order.
+                                    This QR will go to on email to the admin for
+                                    status update.
+                                  </p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
 
                             {/* <Button
                               variant="ghost"

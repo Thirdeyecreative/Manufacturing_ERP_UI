@@ -35,6 +35,7 @@ interface PurchaseOrderProp {
   items: {
     id: string;
     description: string;
+    alias?: string;
     quantity: number;
     receivedQuantity: number;
     unitPrice: number;
@@ -51,6 +52,7 @@ interface FormData {
   notes: string;
   items: {
     rawMaterialId: string;
+    alias: string;
     quantity: number;
     unitPrice: number;
   }[];
@@ -149,6 +151,7 @@ export const EditPurchaseOrderForm = ({
           const material = rawMaterials.find((m) => m.id === item.id);
           return {
             rawMaterialId: material ? material.id : "",
+            alias: item.alias || "",
             quantity: item.quantity,
             unitPrice: item.unitPrice,
           };
@@ -232,6 +235,7 @@ export const EditPurchaseOrderForm = ({
       JSON.stringify(
         formData.items.map((item) => ({
           rawMaterialId: item.rawMaterialId,
+          alias: item.alias,
           quantity: item.quantity,
           unitPrice: item.unitPrice,
           totalPrice: calculateItemTotal(item.quantity, item.unitPrice),
@@ -329,7 +333,7 @@ export const EditPurchaseOrderForm = ({
                 key={index}
                 className="grid grid-cols-12 gap-3 items-end p-4 border rounded-lg"
               >
-                <div className="col-span-5">
+                <div className="col-span-3">
                   <Label className="text-xs">Raw Material *</Label>
                   <Select
                     value={item.rawMaterialId}
@@ -348,6 +352,17 @@ export const EditPurchaseOrderForm = ({
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+                <div className="col-span-3">
+                  <Label className="text-xs">Alias</Label>
+                  <Input
+                    type="text"
+                    placeholder="e.g. 'Main Zipper'"
+                    value={item.alias}
+                    onChange={(e) =>
+                      handleItemChange(index, "alias", e.target.value)
+                    }
+                  />
                 </div>
                 <div className="col-span-2">
                   <Label className="text-xs">Quantity *</Label>
@@ -382,7 +397,7 @@ export const EditPurchaseOrderForm = ({
                     required
                   />
                 </div>
-                <div className="col-span-2">
+                <div className="col-span-1">
                   <Label className="text-xs">Total</Label>
                   <Input
                     value={`₹${calculateItemTotal(

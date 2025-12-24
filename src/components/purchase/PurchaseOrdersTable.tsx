@@ -17,14 +17,20 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
+  AlertCircle,
+  Pencil,
   Edit,
   QrCode,
   Eye,
   Calendar,
   Package,
-  AlertCircle,
-  Pencil,
 } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { PaginationControls } from "../ui/pagination-controls";
 import { EditPurchaseOrderForm } from "./EditPurchaseOrderForm";
 import { UpdateReceivedForm } from "./UpdateReceivedForm";
@@ -523,13 +529,25 @@ function handleDownloadQrCode(po: PurchaseOrder) {
                           )}
                         </DialogContent>
                       </Dialog>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDownloadQrCode(po)}
-                      >
-                        <QrCode className="h-4 w-4" />
-                      </Button>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDownloadQrCode(po)}
+                            >
+                              <QrCode className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="max-w-xs">
+                              Scan this QR code during delivery to verify the
+                              package contents against your order.
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                       {/* <Button
                         variant="ghost"
                         size="sm"
