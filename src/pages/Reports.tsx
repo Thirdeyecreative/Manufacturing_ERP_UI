@@ -7,6 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScheduleReportForm } from "@/components/reports/ScheduleReportForm";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   BarChart3,
   TrendingUp,
   Download,
@@ -305,6 +313,53 @@ const Reports: React.FC = () => {
     fetchScheduledReports();
   };
 
+
+  /* Replace window.confirm with Dialog logic */
+  const [statusDialogOpen, setStatusDialogOpen] = useState(false);
+  const [reportToToggle, setReportToToggle] = useState<ScheduledReport | null>(
+    null
+  );
+
+  const handleStatusClick = (report: ScheduledReport) => {
+    setReportToToggle(report);
+    setStatusDialogOpen(true);
+  };
+
+  const confirmStatusToggle = async () => {
+    if (!reportToToggle) return;
+
+    const newStatus = reportToToggle.status === "Active" ? "Paused" : "Active";
+    const statusValue = reportToToggle.status === "Active" ? "0" : "1";
+
+    try {
+      const form = new FormData();
+      form.append("token", token || "");
+      form.append("id", reportToToggle.id);
+      form.append("status", statusValue);
+
+      const response = await fetch(`${BASE_URL}/schedule/update-status`, {
+        method: "POST",
+        body: form,
+      });
+
+      const data = await response.json();
+      console.log("data", data);
+
+      if (data.errFlag === 0) {
+        toast.success(data.message || `Schedule ${newStatus} successfully`);
+        fetchScheduledReports();
+      } else {
+        toast.error(data.message || "Failed to update status");
+      }
+    } catch (error) {
+      console.error("Error updating status:", error);
+      toast.error("Failed to update status");
+    } finally {
+      setStatusDialogOpen(false);
+      setReportToToggle(null);
+    }
+  };
+
   const formatFrequencyDisplay = (frequency: string, executionTime: string) => {
     const time = executionTime.split(":").slice(0, 2).join(":");
     switch (frequency) {
@@ -435,6 +490,8 @@ const Reports: React.FC = () => {
                         {report.recipients.length !== 1 ? "s" : ""}
                       </div>
                       <Badge
+                        onClick={() => handleStatusClick(report)}
+                        className="cursor-pointer hover:opacity-80 transition-opacity"
                         variant={
                           report.status === "Active" ? "default" : "secondary"
                         }
@@ -455,6 +512,29 @@ const Reports: React.FC = () => {
             )}
           </CardContent>
         </Card>
+
+         {/* Status Toggle Dialog */}
+         <Dialog open={statusDialogOpen} onOpenChange={setStatusDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Confirm Status Change</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to{" "}
+                {reportToToggle?.status === "Active" ? "Pause" : "Activate"} the
+                report "{reportToToggle?.report_name}"?
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setStatusDialogOpen(false)}
+              >
+                No
+              </Button>
+              <Button onClick={confirmStatusToggle}>Yes</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         <ScheduleReportForm
           open={scheduleFormOpen}
