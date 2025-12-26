@@ -53,6 +53,14 @@ export const CreateDispatchForm = ({
   const [noOfBoxes, setNoOfBoxes] = useState(""); 
   const [notes, setNotes] = useState("");
   const [items, setItems] = useState<DispatchItem[]>([]);
+  const [errors, setErrors] = useState({
+    orderReference: "",
+    customerName: "",
+    customerAddress: "",
+    items: "",
+    noOfBoxes: "",
+    notes: "",
+  });
   const [products, setProducts] = useState([]);
   const [customers, setCustomers] = useState([]);
   const { toast } = useToast();
@@ -143,20 +151,59 @@ export const CreateDispatchForm = ({
     return items.reduce((total, item) => total + item.orderedQuantity, 0);
   };
 
+  const validateForm = () => {
+    let newErrors = {
+      orderReference: "",
+      customerName: "",
+      customerAddress: "",
+      items: "",
+      noOfBoxes: "",
+      notes: "",
+    };
+    let isValid = true;
+
+    if (!orderReference.trim()) {
+      newErrors.orderReference = "Order Reference is required.";
+      isValid = false;
+    }
+
+    if (!customerName) {
+      newErrors.customerName = "Please select a customer.";
+      isValid = false;
+    }
+
+    if (!customerAddress.trim()) {
+      newErrors.customerAddress = "Shipping Address is required.";
+      isValid = false;
+    }
+
+    if (!noOfBoxes || parseInt(noOfBoxes) <= 0) {
+      newErrors.noOfBoxes = "Number of boxes is required and must be valid.";
+      isValid = false;
+    }
+
+    if (!notes.trim()) {
+      newErrors.notes = "Notes are required.";
+      isValid = false;
+    }
+
+    if (items.length === 0) {
+      newErrors.items = "At least one item must be added.";
+      isValid = false;
+    }
+
+    setErrors(newErrors);
+    return isValid;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (
-      !orderReference ||
-      !customerName ||
-      !customerAddress ||
-      items.length === 0
-    ) {
+    if (!validateForm()) {
       toast({
-        title: "Error",
-        description:
-          "Please fill in all required fields and add at least one item.",
         variant: "destructive",
+        title: "Validation Error",
+        description: "Please fix the highlighted fields.",
       });
       return;
     }
@@ -218,6 +265,14 @@ export const CreateDispatchForm = ({
         setNoOfBoxes(""); // <-- 4. RESET STATE
         setNotes("");
         setItems([]);
+        setErrors({
+          orderReference: "",
+          customerName: "",
+          customerAddress: "",
+          items: "",
+          noOfBoxes: "",
+          notes: "",
+        });
         onOpenChange(false);
       } else {
         toast({
@@ -263,9 +318,15 @@ export const CreateDispatchForm = ({
                 id="orderReference"
                 placeholder="e.g., ORD-2024-001"
                 value={orderReference}
-                onChange={(e) => setOrderReference(e.target.value)}
-                required
+                onChange={(e) => {
+                  setOrderReference(e.target.value);
+                  setErrors((prev) => ({ ...prev, orderReference: "" }));
+                }}
+                className={errors.orderReference ? "border-red-500" : ""}
               />
+              {errors.orderReference && (
+                <p className="text-red-500 text-sm mt-1">{errors.orderReference}</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -305,9 +366,12 @@ export const CreateDispatchForm = ({
             <Label htmlFor="customerName">Customer Name *</Label>
             <Select
               value={customerName}
-              onValueChange={(value) => setCustomerName(value)}
+              onValueChange={(value) => {
+                setCustomerName(value);
+                setErrors((prev) => ({ ...prev, customerName: "" }));
+              }}
             >
-              <SelectTrigger>
+              <SelectTrigger className={errors.customerName ? "border-red-500" : ""}>
                 <SelectValue placeholder="Select customer" />
               </SelectTrigger>
               <SelectContent>
@@ -318,6 +382,9 @@ export const CreateDispatchForm = ({
                 ))}
               </SelectContent>
             </Select>
+            {errors.customerName && (
+              <p className="text-red-500 text-sm mt-1">{errors.customerName}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -326,18 +393,32 @@ export const CreateDispatchForm = ({
               id="customerAddress"
               placeholder="Enter complete shipping address"
               value={customerAddress}
-              onChange={(e) => setCustomerAddress(e.target.value)}
+              onChange={(e) => {
+                setCustomerAddress(e.target.value);
+                setErrors((prev) => ({ ...prev, customerAddress: "" }));
+              }}
               rows={3}
-              required
+              className={errors.customerAddress ? "border-red-500" : ""}
             />
+            {errors.customerAddress && (
+              <p className="text-red-500 text-sm mt-1">{errors.customerAddress}</p>
+            )}
           </div>
 
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <Label>Items to Dispatch</Label>
+              <div className="space-y-1">
+                <Label>Items to Dispatch</Label>
+                {errors.items && (
+                  <p className="text-red-500 text-sm">{errors.items}</p>
+                )}
+              </div>
               <Button
                 type="button"
-                onClick={addItem}
+                onClick={() => {
+                  addItem();
+                  setErrors((prev) => ({ ...prev, items: "" }));
+                }}
                 size="sm"
                 variant="outline"
               >
@@ -474,25 +555,39 @@ export const CreateDispatchForm = ({
 
           <div className="space-y-2">
             <div className="space-y-2">
-              <Label htmlFor="noOfBoxes">No. of Boxes</Label>
+              <Label htmlFor="noOfBoxes">No. of Boxes *</Label>
               <Input
                 id="noOfBoxes"
                 type="number"
                 placeholder="e.g., 5"
                 value={noOfBoxes}
-                onChange={(e) => setNoOfBoxes(e.target.value)}
-                min="0"
+                onChange={(e) => {
+                  setNoOfBoxes(e.target.value);
+                  setErrors((prev) => ({ ...prev, noOfBoxes: "" }));
+                }}
+                min="1"
+                className={errors.noOfBoxes ? "border-red-500" : ""}
               />
+              {errors.noOfBoxes && (
+                <p className="text-red-500 text-sm">{errors.noOfBoxes}</p>
+              )}
             </div>
 
-            <Label htmlFor="notes">Notes</Label>
+            <Label htmlFor="notes">Notes *</Label>
             <Textarea
               id="notes"
               placeholder="Any additional notes or special instructions"
               value={notes}
-              onChange={(e) => setNotes(e.target.value)}
+              onChange={(e) => {
+                setNotes(e.target.value);
+                setErrors((prev) => ({ ...prev, notes: "" }));
+              }}
               rows={3}
+              className={errors.notes ? "border-red-500" : ""}
             />
+            {errors.notes && (
+              <p className="text-red-500 text-sm">{errors.notes}</p>
+            )}
           </div>
 
           {items.length > 0 && (

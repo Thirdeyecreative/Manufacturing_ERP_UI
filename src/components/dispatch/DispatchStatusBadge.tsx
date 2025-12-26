@@ -7,7 +7,7 @@ interface DispatchStatusBadgeProps {
 
 export const DispatchStatusBadge = ({ status }: DispatchStatusBadgeProps) => {
   const getStatusConfig = (status: string) => {
-    switch (status) {
+    switch ((status || "").toLowerCase()) {
       case "pending":
         return {
           variant: "secondary" as const,

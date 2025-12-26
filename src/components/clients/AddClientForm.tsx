@@ -69,6 +69,24 @@ export function AddClientForm({
   // Additional Information
   const [notes, setNotes] = useState("");
 
+  const [errors, setErrors] = useState({
+    clientName: "",
+    contactPerson: "",
+    clientType: "",
+    email: "",
+    phone: "",
+    gstNumber: "",
+    billingAddress: "",
+    billingCity: "",
+    billingState: "",
+    billingPincode: "",
+    shippingAddress: "",
+    shippingCity: "",
+    shippingState: "",
+    shippingPincode: "",
+    notes: "",
+  });
+
   // Fetch client types from the API
   const fetchClientTypes = async () => {
     try {
@@ -106,12 +124,100 @@ export function AddClientForm({
     }
   }, [open]);
 
+  const validateForm = () => {
+    let newErrors = {
+      clientName: "",
+      contactPerson: "",
+      clientType: "",
+      email: "",
+      phone: "",
+      gstNumber: "",
+      billingAddress: "",
+      billingCity: "",
+      billingState: "",
+      billingPincode: "",
+      shippingAddress: "",
+      shippingCity: "",
+      shippingState: "",
+      shippingPincode: "",
+      notes: "",
+    };
+    let isValid = true;
+
+    if (!clientName.trim()) {
+      newErrors.clientName = "Client Name is required.";
+      isValid = false;
+    }
+    if (!contactPerson.trim()) {
+      newErrors.contactPerson = "Contact Person is required.";
+      isValid = false;
+    }
+    if (!clientType) {
+      newErrors.clientType = "Client Type is required.";
+      isValid = false;
+    }
+    if (!email.trim() || !/\S+@\S+\.\S+/.test(email)) {
+      newErrors.email = "Valid Email is required.";
+      isValid = false;
+    }
+     if (!phone.trim()) {
+      newErrors.phone = "Phone number is required.";
+      isValid = false;
+    }
+     if (!gstNumber.trim()) {
+      newErrors.gstNumber = "GST Number is required.";
+      isValid = false;
+    }
+    if (!billingAddress.trim()) {
+      newErrors.billingAddress = "Address is required.";
+      isValid = false;
+    }
+    if (!billingCity.trim()) {
+      newErrors.billingCity = "City is required.";
+      isValid = false;
+    }
+    if (!billingState.trim()) {
+      newErrors.billingState = "State is required.";
+      isValid = false;
+    }
+    if (!billingPincode.trim()) {
+      newErrors.billingPincode = "Pincode is required.";
+      isValid = false;
+    }
+
+    // Shipping Address Validation
+    if (!shippingAddress.trim()) {
+      newErrors.shippingAddress = "Shipping Address is required.";
+      isValid = false;
+    }
+    if (!shippingCity.trim()) {
+      newErrors.shippingCity = "Shipping City is required.";
+      isValid = false;
+    }
+    if (!shippingState.trim()) {
+      newErrors.shippingState = "Shipping State is required.";
+      isValid = false;
+    }
+    if (!shippingPincode.trim()) {
+      newErrors.shippingPincode = "Shipping Pincode is required.";
+      isValid = false;
+    }
+
+    if (!notes.trim()) {
+      newErrors.notes = "Notes are required.";
+      isValid = false;
+    }
+
+    setErrors(newErrors);
+    return isValid;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!clientName || !contactPerson || !email || !clientType) {
+    if (!validateForm()) {
       toast({
-        title: "Error",
+        title: "Validation Error",
         description: "Please fill in all required fields.",
         variant: "destructive",
       });
@@ -207,6 +313,23 @@ export function AddClientForm({
     setShippingPincode("");
     setSameAsBilling(false);
     setNotes("");
+    setErrors({
+      clientName: "",
+      contactPerson: "",
+      clientType: "",
+      email: "",
+      phone: "",
+      gstNumber: "",
+      billingAddress: "",
+      billingCity: "",
+      billingState: "",
+      billingPincode: "",
+      shippingAddress: "",
+      shippingCity: "",
+      shippingState: "",
+      shippingPincode: "",
+      notes: "",
+    });
   };
 
   const copyBillingToShipping = () => {
@@ -242,23 +365,43 @@ export function AddClientForm({
                   <Input
                     id="clientName"
                     value={clientName}
-                    onChange={(e) => setClientName(e.target.value)}
+                    onChange={(e) => {
+                      setClientName(e.target.value);
+                      setErrors((prev) => ({ ...prev, clientName: "" }));
+                    }}
                     placeholder="Enter client/company name"
+                    className={errors.clientName ? "border-red-500" : ""}
                   />
+                  {errors.clientName && (
+                    <p className="text-red-500 text-sm">{errors.clientName}</p>
+                  )}
                 </div>
                 <div>
                   <Label htmlFor="contactPerson">Contact Person *</Label>
                   <Input
                     id="contactPerson"
                     value={contactPerson}
-                    onChange={(e) => setContactPerson(e.target.value)}
+                    onChange={(e) => {
+                      setContactPerson(e.target.value);
+                      setErrors((prev) => ({ ...prev, contactPerson: "" }));
+                    }}
                     placeholder="Primary contact person"
+                    className={errors.contactPerson ? "border-red-500" : ""}
                   />
+                  {errors.contactPerson && (
+                    <p className="text-red-500 text-sm">{errors.contactPerson}</p>
+                  )}
                 </div>
                 <div>
                   <Label htmlFor="clientType">Client Type *</Label>
-                  <Select value={clientType} onValueChange={setClientType}>
-                    <SelectTrigger>
+                  <Select
+                    value={clientType}
+                    onValueChange={(value) => {
+                      setClientType(value);
+                      setErrors((prev) => ({ ...prev, clientType: "" }));
+                    }}
+                  >
+                    <SelectTrigger className={errors.clientType ? "border-red-500" : ""}>
                       <SelectValue placeholder="Select client type" />
                     </SelectTrigger>
                     <SelectContent>
@@ -269,6 +412,9 @@ export function AddClientForm({
                       ))}
                     </SelectContent>
                   </Select>
+                  {errors.clientType && (
+                    <p className="text-red-500 text-sm">{errors.clientType}</p>
+                  )}
                 </div>
                 <div>
                   <Label htmlFor="email">Email *</Label>
@@ -276,18 +422,32 @@ export function AddClientForm({
                     id="email"
                     type="email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      setErrors((prev) => ({ ...prev, email: "" }));
+                    }}
                     placeholder="client@example.com"
+                    className={errors.email ? "border-red-500" : ""}
                   />
+                  {errors.email && (
+                    <p className="text-red-500 text-sm">{errors.email}</p>
+                  )}
                 </div>
                 <div>
-                  <Label htmlFor="phone">Phone</Label>
+                  <Label htmlFor="phone">Phone *</Label>
                   <Input
                     id="phone"
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
+                    onChange={(e) => {
+                      setPhone(e.target.value);
+                      setErrors((prev) => ({ ...prev, phone: "" }));
+                    }}
                     placeholder="+1-234-567-8900"
+                    className={errors.phone ? "border-red-500" : ""}
                   />
+                  {errors.phone && (
+                    <p className="text-red-500 text-sm">{errors.phone}</p>
+                  )}
                 </div>
                 <div>
                   <Label htmlFor="website">Website</Label>
@@ -310,13 +470,20 @@ export function AddClientForm({
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <Label htmlFor="gstNumber">GST Number</Label>
+                  <Label htmlFor="gstNumber">GST Number *</Label>
                   <Input
                     id="gstNumber"
                     value={gstNumber}
-                    onChange={(e) => setGstNumber(e.target.value)}
+                    onChange={(e) => {
+                      setGstNumber(e.target.value);
+                      setErrors((prev) => ({ ...prev, gstNumber: "" }));
+                    }}
                     placeholder="GST registration number"
+                    className={errors.gstNumber ? "border-red-500" : ""}
                   />
+                  {errors.gstNumber && (
+                    <p className="text-red-500 text-sm">{errors.gstNumber}</p>
+                  )}
                 </div>
                 <div>
                   <Label htmlFor="creditLimit">Credit Limit</Label>
@@ -358,41 +525,89 @@ export function AddClientForm({
                 <h4 className="font-medium mb-3">Billing Address</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="md:col-span-2">
-                    <Label htmlFor="billingAddress">Address</Label>
+                    <Label htmlFor="billingAddress">Address *</Label>
                     <Textarea
                       id="billingAddress"
                       value={billingAddress}
-                      onChange={(e) => setBillingAddress(e.target.value)}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setBillingAddress(val);
+                        setErrors((prev) => ({ ...prev, billingAddress: "" }));
+                        if (sameAsBilling) {
+                          setShippingAddress(val);
+                          setErrors((prev) => ({ ...prev, shippingAddress: "" }));
+                        }
+                      }}
                       placeholder="Street address, building, apartment"
                       rows={2}
+                      className={errors.billingAddress ? "border-red-500" : ""}
                     />
+                    {errors.billingAddress && (
+                      <p className="text-red-500 text-sm">{errors.billingAddress}</p>
+                    )}
                   </div>
                   <div>
-                    <Label htmlFor="billingCity">City</Label>
+                    <Label htmlFor="billingCity">City *</Label>
                     <Input
                       id="billingCity"
                       value={billingCity}
-                      onChange={(e) => setBillingCity(e.target.value)}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setBillingCity(val);
+                        setErrors((prev) => ({ ...prev, billingCity: "" }));
+                        if (sameAsBilling) {
+                          setShippingCity(val);
+                          setErrors((prev) => ({ ...prev, shippingCity: "" }));
+                        }
+                      }}
                       placeholder="City"
+                      className={errors.billingCity ? "border-red-500" : ""}
                     />
+                    {errors.billingCity && (
+                      <p className="text-red-500 text-sm">{errors.billingCity}</p>
+                    )}
                   </div>
                   <div>
-                    <Label htmlFor="billingState">State</Label>
+                    <Label htmlFor="billingState">State *</Label>
                     <Input
                       id="billingState"
                       value={billingState}
-                      onChange={(e) => setBillingState(e.target.value)}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setBillingState(val);
+                        setErrors((prev) => ({ ...prev, billingState: "" }));
+                        if (sameAsBilling) {
+                          setShippingState(val);
+                          setErrors((prev) => ({ ...prev, shippingState: "" }));
+                        }
+                      }}
                       placeholder="State"
+                      className={errors.billingState ? "border-red-500" : ""}
                     />
+                    {errors.billingState && (
+                      <p className="text-red-500 text-sm">{errors.billingState}</p>
+                    )}
                   </div>
                   <div>
-                    <Label htmlFor="billingPincode">Pincode</Label>
+                    <Label htmlFor="billingPincode">Pincode *</Label>
                     <Input
                       id="billingPincode"
                       value={billingPincode}
-                      onChange={(e) => setBillingPincode(e.target.value)}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setBillingPincode(val);
+                        setErrors((prev) => ({ ...prev, billingPincode: "" }));
+                        if (sameAsBilling) {
+                          setShippingPincode(val);
+                          setErrors((prev) => ({ ...prev, shippingPincode: "" }));
+                        }
+                      }}
                       placeholder="Pincode"
+                      className={errors.billingPincode ? "border-red-500" : ""}
                     />
+                    {errors.billingPincode && (
+                      <p className="text-red-500 text-sm">{errors.billingPincode}</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -425,45 +640,73 @@ export function AddClientForm({
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="md:col-span-2">
-                    <Label htmlFor="shippingAddress">Address</Label>
+                    <Label htmlFor="shippingAddress">Address *</Label>
                     <Textarea
                       id="shippingAddress"
                       value={shippingAddress}
-                      onChange={(e) => setShippingAddress(e.target.value)}
+                      onChange={(e) => {
+                        setShippingAddress(e.target.value);
+                        setErrors((prev) => ({ ...prev, shippingAddress: "" }));
+                      }}
                       placeholder="Street address, building, apartment"
                       rows={2}
                       disabled={sameAsBilling}
+                      className={errors.shippingAddress ? "border-red-500" : ""}
                     />
+                    {errors.shippingAddress && (
+                      <p className="text-red-500 text-sm">{errors.shippingAddress}</p>
+                    )}
                   </div>
                   <div>
-                    <Label htmlFor="shippingCity">City</Label>
+                    <Label htmlFor="shippingCity">City *</Label>
                     <Input
                       id="shippingCity"
                       value={shippingCity}
-                      onChange={(e) => setShippingCity(e.target.value)}
+                      onChange={(e) => {
+                        setShippingCity(e.target.value);
+                        setErrors((prev) => ({ ...prev, shippingCity: "" }));
+                      }}
                       placeholder="City"
                       disabled={sameAsBilling}
+                      className={errors.shippingCity ? "border-red-500" : ""}
                     />
+                    {errors.shippingCity && (
+                      <p className="text-red-500 text-sm">{errors.shippingCity}</p>
+                    )}
                   </div>
                   <div>
-                    <Label htmlFor="shippingState">State</Label>
+                    <Label htmlFor="shippingState">State *</Label>
                     <Input
                       id="shippingState"
                       value={shippingState}
-                      onChange={(e) => setShippingState(e.target.value)}
+                      onChange={(e) => {
+                        setShippingState(e.target.value);
+                        setErrors((prev) => ({ ...prev, shippingState: "" }));
+                      }}
                       placeholder="State"
                       disabled={sameAsBilling}
+                      className={errors.shippingState ? "border-red-500" : ""}
                     />
+                    {errors.shippingState && (
+                      <p className="text-red-500 text-sm">{errors.shippingState}</p>
+                    )}
                   </div>
                   <div>
-                    <Label htmlFor="shippingPincode">Pincode</Label>
+                    <Label htmlFor="shippingPincode">Pincode *</Label>
                     <Input
                       id="shippingPincode"
                       value={shippingPincode}
-                      onChange={(e) => setShippingPincode(e.target.value)}
+                      onChange={(e) => {
+                        setShippingPincode(e.target.value);
+                        setErrors((prev) => ({ ...prev, shippingPincode: "" }));
+                      }}
                       placeholder="Pincode"
                       disabled={sameAsBilling}
+                      className={errors.shippingPincode ? "border-red-500" : ""}
                     />
+                    {errors.shippingPincode && (
+                      <p className="text-red-500 text-sm">{errors.shippingPincode}</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -477,14 +720,21 @@ export function AddClientForm({
             </CardHeader>
             <CardContent>
               <div>
-                <Label htmlFor="notes">Notes</Label>
+                <Label htmlFor="notes">Notes *</Label>
                 <Textarea
                   id="notes"
                   value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
+                  onChange={(e) => {
+                    setNotes(e.target.value);
+                    setErrors((prev) => ({ ...prev, notes: "" }));
+                  }}
                   placeholder="Any additional notes about the client..."
                   rows={3}
+                  className={errors.notes ? "border-red-500" : ""}
                 />
+                {errors.notes && (
+                  <p className="text-red-500 text-sm">{errors.notes}</p>
+                )}
               </div>
             </CardContent>
           </Card>

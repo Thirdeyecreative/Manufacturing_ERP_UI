@@ -107,7 +107,8 @@ export const DispatchTable = ({
       order.order_reference.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesStatus =
-      statusFilter === "all" || order.dispatch_status === statusFilter;
+      statusFilter === "all" ||
+      (order.dispatch_status || "").toLowerCase() === statusFilter.toLowerCase();
 
     return matchesSearch && matchesStatus;
   });

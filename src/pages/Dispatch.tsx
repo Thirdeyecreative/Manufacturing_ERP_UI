@@ -60,16 +60,16 @@ const Dispatch = () => {
   };
 
   const pendingCount = dispatches.filter(
-    (d) => d.dispatch_status === "pending"
+    (d) => (d.dispatch_status || "").toLowerCase() === "pending"
   ).length;
   const packedCount = dispatches.filter(
-    (d) => d.dispatch_status === "packed"
+    (d) => (d.dispatch_status || "").toLowerCase() === "packed"
   ).length;
   const shippedCount = dispatches.filter(
-    (d) => d.dispatch_status === "shipped"
+    (d) => (d.dispatch_status || "").toLowerCase() === "shipped"
   ).length;
   const deliveredCount = dispatches.filter(
-    (d) => d.dispatch_status === "delivered"
+    (d) => (d.dispatch_status || "").toLowerCase() === "delivered"
   ).length;
 
   const quickStats = [
