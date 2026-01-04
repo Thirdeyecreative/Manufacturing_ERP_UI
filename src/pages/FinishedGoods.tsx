@@ -38,6 +38,7 @@ import {
   FileEdit,
   Upload,
   Download,
+  X,
 } from "lucide-react";
 import { PaginationControls } from "../components/ui/pagination-controls";
 import { ReceiveFromProductionForm } from "@/components/inventory/ReceiveFromProductionForm";
@@ -193,6 +194,10 @@ const FinishedGoods = () => {
   const [selectedFile, setSelectedFile] = useState(null);
   const fileInputRef = useRef(null);
   const [isDragOver, setIsDragOver] = useState(false);
+
+  // Image Modal State
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [isImageModalOpen, setIsImageModalOpen] = useState(false);
 
   const filteredData = mockFinishedGoods?.filter(
     (item) =>
@@ -665,11 +670,17 @@ const FinishedGoods = () => {
                     {currentData.map((product) => (
                       <TableRow key={product.id}>
                         <TableCell>
-                          <div className="w-12 h-12 bg-muted rounded flex items-center justify-center">
+                          <div 
+                            className="w-12 h-12 bg-muted rounded flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity"
+                            onClick={() => {
+                              setSelectedImage(product.product_image);
+                              setIsImageModalOpen(true);
+                            }}
+                          >
                             <img
                               src={product.product_image}
                               alt={product.product_name}
-                              className="w-8 h-8"
+                              className="max-w-full max-h-full object-cover rounded"
                             />
                           </div>
                         </TableCell>
@@ -781,6 +792,25 @@ const FinishedGoods = () => {
 
       {/* Inventory Action Dialogs */}
 
+      {/* Image View Modal */}
+      <Dialog open={isImageModalOpen} onOpenChange={setIsImageModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] flex items-center justify-center p-1 bg-transparent border-none shadow-none">
+           <div className="relative w-full h-full flex justify-center">
+             <img 
+               src={selectedImage || ''} 
+               alt="Full view" 
+               className="max-w-full max-h-[85vh] object-contain rounded-lg"
+             />
+             <button 
+               onClick={() => setIsImageModalOpen(false)}
+               className="absolute top-2 right-2 p-2 bg-black/50 text-white rounded-full hover:bg-black/70 transition-colors"
+             >
+               <X className="h-6 w-6" />
+             </button>
+           </div>
+        </DialogContent>
+      </Dialog>
+      
       <Dialog
         open={isBulkUploadDialogOpen}
         onOpenChange={setIsBulkUploadDialogOpen}

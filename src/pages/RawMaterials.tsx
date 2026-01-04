@@ -45,6 +45,7 @@ import {
   FileText,
   ToggleRight,
   ToggleLeft,
+  X,
 } from "lucide-react";
 import { PaginationControls } from "../components/ui/pagination-controls";
 import { AddRawMaterialForm } from "@/components/inventory/AddRawMaterialForm";
@@ -428,6 +429,9 @@ const RawMaterials = () => {
   }, []);
 
   // Handler functions
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [isImageModalOpen, setIsImageModalOpen] = useState(false);
+
   const [isDownloading, setIsDownloading] = useState(false);
 
   const handleDownloadTemplate = async () => {
@@ -855,10 +859,17 @@ const RawMaterials = () => {
                     {currentData.map((material) => (
                       <TableRow key={material.id}>
                         <TableCell>
-                          <div className="w-12 h-12 bg-muted rounded flex items-center justify-center">
+                          <div 
+                            className="w-12 h-12 bg-muted rounded flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity"
+                            onClick={() => {
+                              setSelectedImage(material.raw_material_image);
+                              setIsImageModalOpen(true);
+                            }}
+                          >
                             <img
                               src={material.raw_material_image}
                               alt="row material image"
+                              className="max-w-full max-h-full object-cover rounded"
                             />
                           </div>
                         </TableCell>
@@ -1140,14 +1151,33 @@ const RawMaterials = () => {
         </Dialog>
         {/* Edit Material Dialog */}
         <UpdateRawMaterialForm
-          rawMaterial={selectedMaterial}
-          setMockRawMaterials={setMockRawMaterials}
-          isEditMaterialDialogOpen={isEditMaterialDialogOpen}
-          setIsEditMaterialDialogOpen={setIsEditMaterialDialogOpen}
-          onSuccess={() => setIsEditMaterialDialogOpen(false)}
-        />
-      </div>
-    </MainLayout>
+        rawMaterial={selectedMaterial}
+        setMockRawMaterials={setMockRawMaterials}
+        isEditMaterialDialogOpen={isEditMaterialDialogOpen}
+        setIsEditMaterialDialogOpen={setIsEditMaterialDialogOpen}
+        onSuccess={() => setIsEditMaterialDialogOpen(false)}
+      />
+
+      {/* Image View Modal */}
+      <Dialog open={isImageModalOpen} onOpenChange={setIsImageModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] flex items-center justify-center p-1 bg-transparent border-none shadow-none">
+           <div className="relative w-full h-full flex justify-center">
+             <img 
+               src={selectedImage || ''} 
+               alt="Full view" 
+               className="max-w-full max-h-[85vh] object-contain rounded-lg"
+             />
+             <button 
+               onClick={() => setIsImageModalOpen(false)}
+               className="absolute top-2 right-2 p-2 bg-black/50 text-white rounded-full hover:bg-black/70 transition-colors"
+             >
+               <X className="h-6 w-6" />
+             </button>
+           </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  </MainLayout>
   );
 };
 
