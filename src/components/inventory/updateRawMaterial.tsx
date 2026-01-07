@@ -56,7 +56,7 @@ export function UpdateRawMaterialForm({
     materialId: "",
     name: "",
     category: "",
-    vendor: "",
+    vendorIds: [] as string[],
     unitOfMeasure: "",
     unitCost: "",
     minStockLevel: "",
@@ -71,7 +71,7 @@ export function UpdateRawMaterialForm({
     materialId: "",
     name: "",
     category: "",
-    vendor: "",
+    vendorIds: "",
     unitOfMeasure: "",
     unitCost: "",
     minStockLevel: "",
@@ -95,7 +95,8 @@ export function UpdateRawMaterialForm({
         materialId: rawMaterial?.material_code || "",
         name: rawMaterial?.material_name || "",
         category: rawMaterial?.raw_material_category_id || "",
-        vendor: rawMaterial?.vendor_id || "",
+        // Parse existing vendor_ids string into array
+        vendorIds: rawMaterial?.vendor_ids ? rawMaterial.vendor_ids.split(",").map((s: string) => s.trim()) : [],
         unitOfMeasure: rawMaterial?.unit_of_measure || "",
         unitCost: rawMaterial?.unit_cost || "",
         minStockLevel: rawMaterial?.min_stock_level || "",
@@ -107,7 +108,7 @@ export function UpdateRawMaterialForm({
       // Clear any previous images and validation errors when a new material is loaded
       setSelectedImages([]);
       setErrors({
-        materialId: "", name: "", category: "", vendor: "", unitOfMeasure: "",
+        materialId: "", name: "", category: "", vendorIds: "", unitOfMeasure: "",
         unitCost: "", minStockLevel: "", maxStockLevel: "", storageLocation: "",
         description: "", specifications: "",
       });
@@ -133,7 +134,7 @@ export function UpdateRawMaterialForm({
     }
     // Dropdown selections: Must have a value.
     if (!formData.category) newErrors.category = "Please select a Category.";
-    if (!formData.vendor) newErrors.vendor = "Please select a Vendor.";
+    // if (!formData.vendorIds || formData.vendorIds.length === 0) newErrors.vendorIds = "Please select at least one Vendor.";
     if (!formData.unitOfMeasure) newErrors.unitOfMeasure = "Please select a Unit of Measure.";
     if (!formData.storageLocation) newErrors.storageLocation = "Please select a Storage Location.";
     // Unit Cost: Must be a positive number.
@@ -184,7 +185,7 @@ export function UpdateRawMaterialForm({
         materialName: formData.name,
         materialDescription: formData.description,
         rawMaterialCategoryId: formData.category,
-        vendorId: formData.vendor,
+        vendorIds: formData.vendorIds.join(","), // Join array back to string for API
         specification: formData.specifications,
         minStockLevel: formData.minStockLevel,
         maxStockLevel: formData.maxStockLevel,
@@ -222,7 +223,7 @@ export function UpdateRawMaterialForm({
   };
 
   // ✅ Generic input handler that also clears errors on change
-  const handleInputChange = (field: string, value: string) => {
+  const handleInputChange = (field: string, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     // Clear the error for the field being edited
     if (errors[field as keyof typeof errors]) {
@@ -316,12 +317,20 @@ export function UpdateRawMaterialForm({
             <div className="space-y-2">
               <Label htmlFor="vendor">Vendor *</Label>
               <ReactSelect
+                isMulti
                 options={vendors.map((v) => ({ value: v.id.toString(), label: v.name }))}
-                value={formData.vendor ? { value: formData.vendor, label: vendors.find((v) => v.id.toString() === formData.vendor.toString())?.name } : null}
-                onChange={(selected) => handleInputChange("vendor", selected ? selected.value : "")}
-                placeholder="Select vendor"
+                value={vendors
+                  .filter((v) => formData.vendorIds.includes(v.id.toString()))
+                  .map((v) => ({ value: v.id.toString(), label: v.name }))}
+                onChange={(selectedOptions) =>
+                  handleInputChange(
+                    "vendorIds",
+                    selectedOptions ? selectedOptions.map((option) => option.value) : []
+                  )
+                }
+                placeholder="Select vendors"
               />
-              {errors.vendor && <p className="text-red-500 text-sm mt-1">{errors.vendor}</p>}
+              {errors.vendorIds && <p className="text-red-500 text-sm mt-1">{errors.vendorIds}</p>}
             </div>
           </div>
 

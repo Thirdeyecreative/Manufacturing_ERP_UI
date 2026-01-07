@@ -94,7 +94,7 @@ export async function addRawMaterial({
   materialName,
   materialDescription,
   rawMaterialCategoryId,
-  vendorId,
+  vendorIds,
   specification,
   // stockQty,
   minStockLevel,
@@ -111,7 +111,7 @@ export async function addRawMaterial({
   if (materialDescription)
     formData.append("materialDescription", materialDescription);
   formData.append("rawMaterialCategoryId", rawMaterialCategoryId);
-  formData.append("vendorId", vendorId);
+  formData.append("vendorIds", vendorIds);
   formData.append("specification", specification);
   // formData.append("stockQty", stockQty);
   formData.append("minStockLevel", minStockLevel);
@@ -135,7 +135,7 @@ export async function updateRawMaterial({
   materialName,
   materialDescription,
   rawMaterialCategoryId,
-  vendorId,
+  vendorIds,
   specification,
   // stockQty,
   minStockLevel,
@@ -153,7 +153,7 @@ export async function updateRawMaterial({
   if (materialDescription)
     formData.append("materialDescription", materialDescription);
   formData.append("rawMaterialCategoryId", rawMaterialCategoryId);
-  formData.append("vendorId", vendorId);
+  formData.append("vendorIds", vendorIds);
   formData.append("specification", specification);
   // formData.append("stockQty", stockQty);
   formData.append("minStockLevel", minStockLevel.toString());
@@ -213,8 +213,8 @@ interface RawMaterial {
   unit_of_measure: string;
   updated_admin_id: number | null;
   updated_at: string;
-  vendor_id: number;
-  vendor_name: string | null;
+  vendor_ids: string;
+  vendor_names: string | null;
   location_label: string;
 }
 
@@ -305,7 +305,7 @@ const RawMaterials = () => {
     (item) =>
       item?.material_name?.toLowerCase()?.includes(searchTerm.toLowerCase()) ||
       item?.category_name?.toLowerCase()?.includes(searchTerm.toLowerCase()) ||
-      item?.vendor_name?.toLowerCase()?.includes(searchTerm.toLowerCase())
+      item?.vendor_names?.toLowerCase()?.includes(searchTerm.toLowerCase())
   );
 
   const totalItems = filteredData.length;
@@ -889,7 +889,7 @@ const RawMaterials = () => {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-sm">
-                          {material.vendor_name}
+                          {material.vendor_names}
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
@@ -1077,7 +1077,7 @@ const RawMaterials = () => {
                   <div>
                     <p className="text-sm font-medium">Vendor</p>
                     <p className="text-sm text-muted-foreground">
-                      {selectedMaterial.vendor_name}
+                      {selectedMaterial.vendor_names}
                     </p>
                   </div>
                   <div>

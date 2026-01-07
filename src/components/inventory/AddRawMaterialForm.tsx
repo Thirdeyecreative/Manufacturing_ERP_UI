@@ -40,8 +40,7 @@ export function AddRawMaterialForm({
   const [formData, setFormData] = useState({
     materialId: "",
     name: "",
-    category: "",
-    vendor: "",
+    vendorIds: [] as string[],
     unitOfMeasure: "",
     unitCost: "",
     minStockLevel: "",
@@ -56,7 +55,7 @@ export function AddRawMaterialForm({
     materialId: "",
     name: "",
     category: "",
-    vendor: "",
+    vendorIds: "",
     unitOfMeasure: "",
     unitCost: "",
     minStockLevel: "",
@@ -157,7 +156,12 @@ export function AddRawMaterialForm({
         materialName: formData.name,
         materialDescription: formData.description,
         rawMaterialCategoryId: formData.category,
-        vendorId: formData.vendor,
+        // Send the vendor IDs as a comma-separated string if that's what your backend expects
+        // OR as an array if your backend handles JSON arrays.
+        // Based on the user prompt: "vendorIds_str = request.form.get('vendorIds', '')"
+        // and "vendorIds = [int(v_id.strip()) for v_id in vendorIds_str.split(',') if v_id.strip()]"
+        // we should send a comma-separated string.
+        vendorIds: formData.vendorIds.join(","),
         specification: formData.specifications,
         // stockQty: formData.minStockLevel,
         minStockLevel: formData.minStockLevel,
@@ -187,7 +191,7 @@ export function AddRawMaterialForm({
         materialId: "",
         name: "",
         category: "",
-        vendor: "",
+        vendorIds: [],
         unitOfMeasure: "",
         unitCost: "",
         minStockLevel: "",
@@ -211,7 +215,7 @@ export function AddRawMaterialForm({
   };
 
   // ✅ Updated input handler to clear errors on change
-  const handleInputChange = (field: string, value: string) => {
+  const handleInputChange = (field: string, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     // Clear the error for the specific field when the user starts typing
     if (errors[field as keyof typeof errors]) {
@@ -347,18 +351,24 @@ export function AddRawMaterialForm({
             <Label htmlFor="vendor">Vendor *</Label>
             <ReactSelect
               id="vendor"
+              isMulti
               options={vendors.map((v) => ({
                 value: v.id.toString(),
                 label: v.name,
               }))}
-              onChange={(selected) =>
-                handleInputChange("vendor", selected ? selected.value : "")
+              onChange={(selectedOptions) =>
+                handleInputChange(
+                  "vendorIds",
+                  selectedOptions
+                    ? selectedOptions.map((option) => option.value)
+                    : []
+                )
               }
               placeholder="Select vendor"
               isClearable
             />
-            {errors.vendor && (
-              <p className="text-red-500 text-sm mt-1">{errors.vendor}</p>
+            {errors.vendorIds && (
+              <p className="text-red-500 text-sm mt-1">{errors.vendorIds}</p>
             )}
           </div>
         </div>

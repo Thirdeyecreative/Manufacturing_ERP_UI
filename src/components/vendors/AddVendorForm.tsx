@@ -195,8 +195,8 @@ export const AddVendorForm = ({
       newErrors.contactPerson = "Enter a valid contact person name.";
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email))
       newErrors.email = "Enter a valid email address.";
-    if (!/^[6-9]\d{9}$/.test(formData.phone))
-      newErrors.phone = "Enter a valid 10-digit mobile number.";
+    if (!/^\d{5,15}$/.test(formData.phone))
+      newErrors.phone = "Enter a valid mobile number (5-15 digits).";
 
     // Address
     if (!formData.address.trim()) newErrors.address = "Address is required.";
@@ -428,7 +428,7 @@ export const AddVendorForm = ({
                 <Input
                   id="phone"
                   value={formData.phone}
-                  maxLength={10}
+                  maxLength={15}
                   onChange={(e) => handleInputChange("phone", e.target.value)}
                   placeholder="Enter phone number"
                 />
