@@ -710,7 +710,7 @@ const FinishedGoods = () => {
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <span className="font-medium">
-                              {product.stock_qty}
+                              {Number(product.stock_qty).toFixed(2)}
                             </span>
                             {product.status === "low-stock" && (
                               <AlertTriangle className="h-4 w-4 text-warning" />
