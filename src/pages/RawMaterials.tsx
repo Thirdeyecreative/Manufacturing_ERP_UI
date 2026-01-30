@@ -68,14 +68,14 @@ export async function getAllRawMaterials(token: string) {
 // ✅ Get raw materials by category IDs
 export async function getRawMaterialsByCategoryIds(
   categoryIds: number[],
-  token: string
+  token: string,
 ) {
   const res = await axios.post(
     `${API_BASE}/raw-materials/get-by-category-ids`,
     {
       categoryIds,
       token,
-    }
+    },
   );
   return res.data;
 }
@@ -83,7 +83,7 @@ export async function getRawMaterialsByCategoryIds(
 // ✅ Get raw material details
 export async function getRawMaterialDetails(materialId: number, token: string) {
   const res = await axios.get(
-    `${API_BASE}/raw-materials/get-details/${materialId}/${token}`
+    `${API_BASE}/raw-materials/get-details/${materialId}/${token}`,
   );
   return res.data;
 }
@@ -169,7 +169,7 @@ export async function updateRawMaterial({
   const res = await axios.post(
     `${API_BASE}/raw-materials/update`,
     formData,
-    {}
+    {},
   );
   console.log(res.data);
   return res.data;
@@ -179,15 +179,13 @@ export async function updateRawMaterial({
 export async function changeRawMaterialStatus(
   materialId: number,
   status: number,
-  token: string
+  token: string,
 ) {
   const res = await axios.get(
-    `${API_BASE}/raw-materials/change-status/${materialId}/${status}/${token}`
+    `${API_BASE}/raw-materials/change-status/${materialId}/${status}/${token}`,
   );
   return res.data;
 }
-
-
 
 interface RawMaterial {
   id: number;
@@ -222,15 +220,15 @@ function getRawMaterialStats(materials: RawMaterial[]) {
   console.log(materials);
   const totalRawMaterials = materials.length;
   const lowStockItems = materials.filter(
-    (m) => m.stock_status === "low-stock"
+    (m) => m.stock_status === "low-stock",
   ).length;
   const outOfStockItems = materials.filter(
-    (m) => m.stock_status === "out-of-stock"
+    (m) => m.stock_status === "out-of-stock",
   ).length;
 
   // Count unique, non-null, non-empty warehouse names
   const uniqueLocations = new Set(
-    materials.map((m) => m.location_label?.trim()).filter((name) => !!name)
+    materials.map((m) => m.location_label?.trim()).filter((name) => !!name),
   );
   const storageLocations = uniqueLocations.size;
 
@@ -254,7 +252,7 @@ const RawMaterials = () => {
   const [viewMaterialOpen, setViewMaterialOpen] = useState(false);
   const [bulkUpdateOpen, setBulkUpdateOpen] = useState(false);
   const [selectedMaterial, setSelectedMaterial] = useState<RawMaterial | null>(
-    null
+    null,
   );
   const [totalRawMaterials, setTotalRawMaterials] = useState(0);
   const [lowStockItems, setLowStockItems] = useState(0);
@@ -305,7 +303,8 @@ const RawMaterials = () => {
     (item) =>
       item?.material_name?.toLowerCase()?.includes(searchTerm.toLowerCase()) ||
       item?.category_name?.toLowerCase()?.includes(searchTerm.toLowerCase()) ||
-      item?.vendor_names?.toLowerCase()?.includes(searchTerm.toLowerCase())
+      item?.vendor_names?.toLowerCase()?.includes(searchTerm.toLowerCase()) ||
+      item?.id?.toString().includes(searchTerm),
   );
 
   const totalItems = filteredData.length;
@@ -379,7 +378,7 @@ const RawMaterials = () => {
       const res = await changeRawMaterialStatus(
         Number(material.id), // adjust to your API’s key
         newStatus,
-        token // replace with your actual token
+        token, // replace with your actual token
       );
 
       if (res.errFlag !== 0) {
@@ -393,8 +392,9 @@ const RawMaterials = () => {
 
       toast({
         title: "Status Updated",
-        description: `${material.material_name} is now ${newStatus === 0 ? "inactive" : "active"
-          }`,
+        description: `${material.material_name} is now ${
+          newStatus === 0 ? "inactive" : "active"
+        }`,
       });
 
       fetchRawMaterials(token);
@@ -452,7 +452,7 @@ const RawMaterials = () => {
         `${API_BASE}/raw-materials/bulk-upload-template/download/${token}`,
         {
           method: "GET",
-        }
+        },
       );
 
       if (!response.ok) {
@@ -584,7 +584,6 @@ const RawMaterials = () => {
       console.log(data);
 
       if (response.ok) {
-
         if (data.errFlag !== 0) {
           toast({
             title: "Error",
@@ -705,10 +704,11 @@ const RawMaterials = () => {
 
                   {/* Upload Section */}
                   <div
-                    className={`flex flex-col items-center justify-center p-6 border-2 border-dashed rounded-lg transition-colors ${isDragOver
-                      ? "border-blue-500 bg-blue-50"
-                      : "border-gray-300"
-                      }`}
+                    className={`flex flex-col items-center justify-center p-6 border-2 border-dashed rounded-lg transition-colors ${
+                      isDragOver
+                        ? "border-blue-500 bg-blue-50"
+                        : "border-gray-300"
+                    }`}
                     onDragOver={handleDragOver}
                     onDragLeave={handleDragLeave}
                     onDrop={handleDrop}
@@ -859,7 +859,7 @@ const RawMaterials = () => {
                     {currentData.map((material) => (
                       <TableRow key={material.id}>
                         <TableCell>
-                          <div 
+                          <div
                             className="w-12 h-12 bg-muted rounded flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity"
                             onClick={() => {
                               setSelectedImage(material.raw_material_image);
@@ -930,22 +930,22 @@ const RawMaterials = () => {
                         </TableCell>
                         <TableCell className="text-sm">
                           {new Date(
-                            material.last_restocked
+                            material.last_restocked,
                           ).toLocaleDateString()}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end space-x-1">
                             {(material.stock_status === "low-stock" ||
                               material.stock_status === "out-of-stock") && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => navigate(`/purchases`)}
-                                >
-                                  <ShoppingCart className="h-4 w-4 mr-1" />
-                                  Create PO
-                                </Button>
-                              )}
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => navigate(`/purchases`)}
+                              >
+                                <ShoppingCart className="h-4 w-4 mr-1" />
+                                Create PO
+                              </Button>
+                            )}
                             <Button
                               variant="ghost"
                               size="sm"
@@ -1140,7 +1140,7 @@ const RawMaterials = () => {
                     <p className="text-sm font-medium">Last Restocked</p>
                     <p className="text-sm text-muted-foreground">
                       {new Date(
-                        selectedMaterial.last_restocked
+                        selectedMaterial.last_restocked,
                       ).toLocaleDateString()}
                     </p>
                   </div>
@@ -1151,33 +1151,33 @@ const RawMaterials = () => {
         </Dialog>
         {/* Edit Material Dialog */}
         <UpdateRawMaterialForm
-        rawMaterial={selectedMaterial}
-        setMockRawMaterials={setMockRawMaterials}
-        isEditMaterialDialogOpen={isEditMaterialDialogOpen}
-        setIsEditMaterialDialogOpen={setIsEditMaterialDialogOpen}
-        onSuccess={() => setIsEditMaterialDialogOpen(false)}
-      />
+          rawMaterial={selectedMaterial}
+          setMockRawMaterials={setMockRawMaterials}
+          isEditMaterialDialogOpen={isEditMaterialDialogOpen}
+          setIsEditMaterialDialogOpen={setIsEditMaterialDialogOpen}
+          onSuccess={() => setIsEditMaterialDialogOpen(false)}
+        />
 
-      {/* Image View Modal */}
-      <Dialog open={isImageModalOpen} onOpenChange={setIsImageModalOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] flex items-center justify-center p-1 bg-transparent border-none shadow-none">
-           <div className="relative w-full h-full flex justify-center">
-             <img 
-               src={selectedImage || ''} 
-               alt="Full view" 
-               className="max-w-full max-h-[85vh] object-contain rounded-lg"
-             />
-             <button 
-               onClick={() => setIsImageModalOpen(false)}
-               className="absolute top-2 right-2 p-2 bg-black/50 text-white rounded-full hover:bg-black/70 transition-colors"
-             >
-               <X className="h-6 w-6" />
-             </button>
-           </div>
-        </DialogContent>
-      </Dialog>
-    </div>
-  </MainLayout>
+        {/* Image View Modal */}
+        <Dialog open={isImageModalOpen} onOpenChange={setIsImageModalOpen}>
+          <DialogContent className="max-w-4xl max-h-[90vh] flex items-center justify-center p-1 bg-transparent border-none shadow-none">
+            <div className="relative w-full h-full flex justify-center">
+              <img
+                src={selectedImage || ""}
+                alt="Full view"
+                className="max-w-full max-h-[85vh] object-contain rounded-lg"
+              />
+              <button
+                onClick={() => setIsImageModalOpen(false)}
+                className="absolute top-2 right-2 p-2 bg-black/50 text-white rounded-full hover:bg-black/70 transition-colors"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </MainLayout>
   );
 };
 
