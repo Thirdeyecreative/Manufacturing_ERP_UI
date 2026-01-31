@@ -304,6 +304,7 @@ const RawMaterials = () => {
       item?.material_name?.toLowerCase()?.includes(searchTerm.toLowerCase()) ||
       item?.category_name?.toLowerCase()?.includes(searchTerm.toLowerCase()) ||
       item?.vendor_names?.toLowerCase()?.includes(searchTerm.toLowerCase()) ||
+      item?.material_code?.toLowerCase()?.includes(searchTerm.toLowerCase()) ||
       item?.id?.toString().includes(searchTerm),
   );
 
@@ -879,7 +880,7 @@ const RawMaterials = () => {
                               {material.material_name}
                             </div>
                             <div className="text-sm text-muted-foreground">
-                              ID: {material.id}
+                              ID: {material.material_code}
                             </div>
                           </div>
                         </TableCell>
