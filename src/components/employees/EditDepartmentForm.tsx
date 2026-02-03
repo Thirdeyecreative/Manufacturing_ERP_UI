@@ -149,10 +149,14 @@ export function DepartmentForm({
     }
 
     // Budget: Must be a positive number (can be decimal)
-    if (!/^\d+(\.\d{1,2})?$/.test(String(formData.budget)) || Number(formData.budget) <= 0) {
+    if (
+      !/^\d+(\.\d{1,2})?$/.test(String(formData.budget)) ||
+      Number(formData.budget) <= 0
+    ) {
       newErrors.budget = "Budget must be a positive number.";
     }
 
+    console.log("Validation Errors:", newErrors);
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -170,47 +174,46 @@ export function DepartmentForm({
 
     setLoading(true);
     try {
-     
       if (mode === "add") {
-         const payload: any = {
-           departmentCode: formData.departmentCode,
-           departmentName: formData.departmentName,
-           departmentDescription: formData.departmentDescription,
-           location: formData.location,
-           employeesCount: formData.employeesCount ?? "",
-           budget: formData.budget,
-           token,
-         };
+        const payload: any = {
+          departmentCode: formData.departmentCode,
+          departmentName: formData.departmentName,
+          departmentDescription: formData.departmentDescription,
+          location: formData.location,
+          employeesCount: formData.employeesCount ?? "",
+          budget: formData.budget,
+          token,
+        };
 
-         if (formData.departmentHead) {
-           payload.departmentHeadEmpId = formData.departmentHead;
-         }
+        if (formData.departmentHead) {
+          payload.departmentHeadEmpId = formData.departmentHead;
+        }
         await addDepartment({
-          ...payload
+          ...payload,
         });
-        
+
         toast({
           title: "Department Added",
           description: `${formData.departmentName} has been created successfully.`,
         });
       } else if (mode === "edit" && formData.departmentId) {
-      const updatePayload: any = {
-        departmentId: formData.departmentId,
-        departmentCode: formData.departmentCode,
-        departmentName: formData.departmentName,
-        departmentDescription: formData.departmentDescription,
-        location: formData.location,
-        employeesCount: formData.employeesCount ?? "",
-        budget: formData.budget,
-        token,
-      };
+        const updatePayload: any = {
+          departmentId: formData.departmentId,
+          departmentCode: formData.departmentCode,
+          departmentName: formData.departmentName,
+          departmentDescription: formData.departmentDescription,
+          location: formData.location,
+          employeesCount: formData.employeesCount ?? "",
+          budget: formData.budget,
+          token,
+        };
 
-      // only include departmentHeadEmpId if user actually selected one
-      if (formData.departmentHead) {
-        updatePayload.departmentHeadEmpId = formData.departmentHead;
-      }
+        // only include departmentHeadEmpId if user actually selected one
+        if (formData.departmentHead) {
+          updatePayload.departmentHeadEmpId = formData.departmentHead;
+        }
 
-      await updateDepartment(updatePayload);
+        await updateDepartment(updatePayload);
 
         toast({
           title: "Department Updated",
@@ -261,12 +264,11 @@ export function DepartmentForm({
           emp.employee_code
             ?.toLowerCase()
             .includes(searchQuery.toLowerCase()) ||
-          emp.email?.toLowerCase().includes(searchQuery.toLowerCase())
+          emp.email?.toLowerCase().includes(searchQuery.toLowerCase()),
       );
       setFilteredEmployees(filtered);
     }
   }, [searchQuery, employees]);
-
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -293,7 +295,7 @@ export function DepartmentForm({
                 <p className="text-red-500 text-sm">{errors.departmentCode}</p>
               )}
             </div>
-            {/* <div className="space-y-2">
+            <div className="space-y-2">
               <Label htmlFor="departmentName">Department Name</Label>
               <Input
                 id="departmentName"
@@ -306,7 +308,7 @@ export function DepartmentForm({
               {errors.departmentName && (
                 <p className="text-red-500 text-sm">{errors.departmentName}</p>
               )}
-            </div> */}
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -453,8 +455,8 @@ export function DepartmentForm({
               {loading
                 ? "Saving..."
                 : mode === "edit"
-                ? "Update Department"
-                : "Add Department"}
+                  ? "Update Department"
+                  : "Add Department"}
             </Button>
           </div>
         </form>
