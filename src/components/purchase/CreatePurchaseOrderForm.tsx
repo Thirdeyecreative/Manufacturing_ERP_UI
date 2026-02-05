@@ -15,8 +15,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Minus } from "lucide-react";
+import { Plus, Minus, Check, ChevronsUpDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { BASE_URL } from "@/hooks/baseUrls";
 import { Form } from "react-router-dom";
@@ -67,6 +81,7 @@ export const CreatePurchaseOrderForm = ({
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [rawMaterials, setRawMaterials] = useState<RawMaterial[]>([]); // State for raw materials
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [openRowIndex, setOpenRowIndex] = useState<number | null>(null);
   const token = localStorage.getItem("token");
 
   // Fetch vendors and raw materials when the dialog is opened
@@ -76,7 +91,7 @@ export const CreatePurchaseOrderForm = ({
         try {
           // Fetch Vendors
           const vendorsResponse = await fetch(
-            `${BASE_URL}/vendors/get-vendors/${token}`
+            `${BASE_URL}/vendors/get-vendors/${token}`,
           );
           if (!vendorsResponse.ok) throw new Error("Failed to fetch vendors");
           const vendorsData = await vendorsResponse.json();
@@ -90,7 +105,7 @@ export const CreatePurchaseOrderForm = ({
 
           // Fetch Raw Materials
           const materialsResponse = await fetch(
-            `${BASE_URL}/raw-materials/get-all/${token}`
+            `${BASE_URL}/raw-materials/get-all/${token}`,
           );
           if (!materialsResponse.ok)
             throw new Error("Failed to fetch raw materials");
@@ -141,7 +156,7 @@ export const CreatePurchaseOrderForm = ({
   const handleItemChange = (
     index: number,
     field: keyof PurchaseOrderItem,
-    value: string | number
+    value: string | number,
   ) => {
     setFormData((prev) => ({
       ...prev,
@@ -187,7 +202,7 @@ export const CreatePurchaseOrderForm = ({
     }
     // Updated validation to check for rawMaterialId
     const invalidItem = formData.items.find(
-      (item) => !item.rawMaterialId || item.quantity <= 0 || item.unitPrice < 0
+      (item) => !item.rawMaterialId || item.quantity <= 0 || item.unitPrice < 0,
     );
     if (invalidItem) {
       toast({
@@ -218,8 +233,8 @@ export const CreatePurchaseOrderForm = ({
           quantity: item.quantity,
           unitPrice: item.unitPrice,
           totalPrice: item.total,
-        }))
-      )
+        })),
+      ),
     );
     // console.log({ payload });
     // payload.forEach((value, key) => {
@@ -328,23 +343,64 @@ export const CreatePurchaseOrderForm = ({
                 >
                   <div className="col-span-3">
                     <Label className="text-xs">Raw Material *</Label>
-                    <Select
-                      value={item.rawMaterialId}
-                      onValueChange={(value) =>
-                        handleItemChange(index, "rawMaterialId", value)
+                    <Popover
+                      open={openRowIndex === index}
+                      onOpenChange={(open) =>
+                        setOpenRowIndex(open ? index : null)
                       }
+                      modal={true}
                     >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a material" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {rawMaterials.map((material) => (
-                          <SelectItem key={material.id} value={material.id}>
-                            {material.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={openRowIndex === index}
+                          className="w-full justify-between font-normal"
+                        >
+                          {item.rawMaterialId
+                            ? rawMaterials.find(
+                                (material) =>
+                                  material.id === item.rawMaterialId,
+                              )?.name
+                            : "Select a material"}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[200px] p-0">
+                        <Command>
+                          <CommandInput placeholder="Search material..." />
+                          <CommandList className="max-h-[200px] overflow-y-auto">
+                            <CommandEmpty>No material found.</CommandEmpty>
+                            <CommandGroup>
+                              {rawMaterials.map((material) => (
+                                <CommandItem
+                                  key={material.id}
+                                  value={material.name}
+                                  onSelect={() => {
+                                    handleItemChange(
+                                      index,
+                                      "rawMaterialId",
+                                      material.id,
+                                    );
+                                    setOpenRowIndex(null);
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      item.rawMaterialId === material.id
+                                        ? "opacity-100"
+                                        : "opacity-0",
+                                    )}
+                                  />
+                                  {material.name}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                   </div>
 
                   <div className="col-span-3">
@@ -372,7 +428,7 @@ export const CreatePurchaseOrderForm = ({
                         handleItemChange(
                           index,
                           "quantity",
-                          parseInt(e.target.value, 10) || 0
+                          parseInt(e.target.value, 10) || 0,
                         )
                       }
                       required
@@ -391,7 +447,7 @@ export const CreatePurchaseOrderForm = ({
                         handleItemChange(
                           index,
                           "unitPrice",
-                          parseFloat(e.target.value) || 0
+                          parseFloat(e.target.value) || 0,
                         )
                       }
                       required
