@@ -137,7 +137,7 @@ export async function updateRawMaterial({
   rawMaterialCategoryId,
   vendorIds,
   specification,
-  // stockQty,
+  stockQty,
   minStockLevel,
   maxStockLevel,
   unitOfMeasure,
@@ -155,7 +155,7 @@ export async function updateRawMaterial({
   formData.append("rawMaterialCategoryId", rawMaterialCategoryId);
   formData.append("vendorIds", vendorIds);
   formData.append("specification", specification);
-  // formData.append("stockQty", stockQty);
+  formData.append("stockQty", stockQty);
   formData.append("minStockLevel", minStockLevel.toString());
   formData.append("maxStockLevel", maxStockLevel.toString());
   formData.append("unitOfMeasure", unitOfMeasure);
