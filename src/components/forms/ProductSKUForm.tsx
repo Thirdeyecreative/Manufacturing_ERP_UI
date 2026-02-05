@@ -17,7 +17,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Upload, X, Plus, Minus } from "lucide-react";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Upload, X, Plus, Minus, Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { BASE_URL } from "@/hooks/baseUrls";
 import {
   addProductSku,
@@ -84,11 +98,11 @@ export const ProductSKUForm = ({
     { id: string; materialCategory: string; stockQty: number }[]
   >([]);
   const [units, setUnits] = useState<{ unit: string }[]>([]);
+  const [openRowIndex, setOpenRowIndex] = useState<number | null>(null);
 
   // Pre-populate form when in edit mode
   useEffect(() => {
     if (product && (mode === "edit" || mode === "duplicate")) {
-
       const productName =
         mode === "duplicate"
           ? `${product.product_name} (Copy)`
@@ -149,7 +163,7 @@ export const ProductSKUForm = ({
       if (!rm.unit) itemErrors.unit = "Required.";
 
       const selectedMaterial = materialCategories.find(
-        (m) => m.id === rm.rawMaterialId
+        (m) => m.id === rm.rawMaterialId,
       );
       if (selectedMaterial && rm.quantity > selectedMaterial.stockQty) {
         itemErrors.quantity = `Max stock: ${selectedMaterial.stockQty}`;
@@ -235,23 +249,23 @@ export const ProductSKUForm = ({
     };
     Promise.all([
       fetchData("/brands/get-brands", (d) =>
-        d.map((b: any) => ({ id: String(b.id), brand: b.brand_name }))
+        d.map((b: any) => ({ id: String(b.id), brand: b.brand_name })),
       ),
       fetchData("/product-categories/get-categories", (d) =>
         d.map((c: any) => ({
           id: String(c.id),
           category: c.product_category_name,
-        }))
+        })),
       ),
       fetchData("/raw-materials/get-all", (d) =>
         d.map((m: any) => ({
           id: String(m.id),
           materialCategory: m.material_name,
           stockQty: m.stock_qty,
-        }))
+        })),
       ),
       fetchData("/units/get-units", (d) =>
-        d.map((u: any) => ({ unit: u.unit_name }))
+        d.map((u: any) => ({ unit: u.unit_name })),
       ),
     ]).then(([brandsData, categoriesData, materialsData, unitsData]) => {
       setBrands(brandsData);
@@ -264,7 +278,7 @@ export const ProductSKUForm = ({
   // --- HANDLERS ---
   const handleInputChange = (
     field: "name" | "brand" | "category" | "productDescription",
-    value: string
+    value: string,
   ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) setErrors((prev: any) => ({ ...prev, [field]: "" }));
@@ -285,7 +299,7 @@ export const ProductSKUForm = ({
   const handleMaterialChange = (
     index: number,
     field: string,
-    value: string | number
+    value: string | number,
   ) => {
     const updatedMaterials = [...formData.rawMaterials];
     updatedMaterials[index] = { ...updatedMaterials[index], [field]: value };
@@ -319,12 +333,12 @@ export const ProductSKUForm = ({
   const getAvailableMaterials = (currentIndex: number) => {
     const selectedMaterialIds = formData.rawMaterials
       .map((material, index) =>
-        index !== currentIndex ? material.rawMaterialId : null
+        index !== currentIndex ? material.rawMaterialId : null,
       )
       .filter(Boolean);
 
     return materialCategories.filter(
-      (material) => !selectedMaterialIds.includes(material.id)
+      (material) => !selectedMaterialIds.includes(material.id),
     );
   };
 
@@ -336,8 +350,8 @@ export const ProductSKUForm = ({
             {mode === "edit"
               ? "Edit"
               : mode === "duplicate"
-              ? "Duplicate"
-              : "Add New"}
+                ? "Duplicate"
+                : "Add New"}
             Product SKU
           </DialogTitle>
         </DialogHeader>
@@ -409,7 +423,7 @@ export const ProductSKUForm = ({
                 onChange={(e) =>
                   handleNumberInputChange(
                     "minStockLevel",
-                    parseInt(e.target.value) || 0
+                    parseInt(e.target.value) || 0,
                   )
                 }
                 placeholder="e.g., 10"
@@ -459,28 +473,68 @@ export const ProductSKUForm = ({
                   >
                     <div className="col-span-5 space-y-1">
                       <Label className="text-xs">Material</Label>
-                      <Select
-                        value={item.rawMaterialId || ""}
-                        onValueChange={(value) =>
-                          handleMaterialChange(index, "rawMaterialId", value)
+                      <Popover
+                        open={openRowIndex === index}
+                        onOpenChange={(open) =>
+                          setOpenRowIndex(open ? index : null)
                         }
+                        modal={true}
                       >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {getAvailableMaterials(index).map((m) => (
-                            <SelectItem key={m.id} value={m.id}>
-                              {m.materialCategory}
-                            </SelectItem>
-                          ))}
-                          {getAvailableMaterials(index).length === 0 && (
-                            <SelectItem value="no-materials" disabled>
-                              No materials available
-                            </SelectItem>
-                          )}
-                        </SelectContent>
-                      </Select>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={openRowIndex === index}
+                            className="w-full justify-between font-normal"
+                          >
+                            {item.rawMaterialId
+                              ? materialCategories.find(
+                                  (m) => m.id === item.rawMaterialId,
+                                )?.materialCategory
+                              : "Select material..."}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[300px] p-0">
+                          <Command>
+                            <CommandInput placeholder="Search material..." />
+                            <CommandList className="max-h-[200px] overflow-y-auto">
+                              <CommandEmpty>No material found.</CommandEmpty>
+                              <CommandGroup>
+                                {getAvailableMaterials(index).map((m) => (
+                                  <CommandItem
+                                    key={m.id}
+                                    value={m.materialCategory}
+                                    onSelect={() => {
+                                      handleMaterialChange(
+                                        index,
+                                        "rawMaterialId",
+                                        m.id,
+                                      );
+                                      setOpenRowIndex(null);
+                                    }}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        item.rawMaterialId === m.id
+                                          ? "opacity-100"
+                                          : "opacity-0",
+                                      )}
+                                    />
+                                    {m.materialCategory}
+                                  </CommandItem>
+                                ))}
+                                {getAvailableMaterials(index).length === 0 && (
+                                  <CommandItem disabled>
+                                    No materials available
+                                  </CommandItem>
+                                )}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
                       {errors.rawMaterials[index]?.rawMaterialId && (
                         <p className="text-red-500 text-xs">
                           {errors.rawMaterials[index].rawMaterialId}
@@ -496,7 +550,7 @@ export const ProductSKUForm = ({
                           handleMaterialChange(
                             index,
                             "quantity",
-                            parseFloat(e.target.value) || 0
+                            parseFloat(e.target.value) || 0,
                           )
                         }
                         placeholder="0"
